@@ -1,0 +1,54 @@
+{
+  "Mods": [
+  {
+		"Name": "Enhanced Vanilla",
+		 "Version": "1.4.7",
+		 "Author": "Nicull",
+		 "Description": "Adds every single mod that enhances the vanilla experience, it does not include Rundens A.I or the RHD cars (since they dont make much sense in the game)\n\nThe best way to play the game!\n\n-Adds diesel engines and a new V8\n-New cars\n-New rims\n-Physics lock for all cars\n-tire wear\n-turbo\n-plate edit\n-Spoilers for lada and golf\n-Fuel, temperature and RPM gauges\n-Caddy towhitch\n-Physical ignition switch for all cars\n-Breakable crates\n-Fuel consumption mod\n-Realistic Handbrake\n-Mount anywhere\n-Automatic transmissions\n-And the gutted ikarus mod \n\n1.2 Changelog:\n-Removed Serenas physlock mod since it caused a few issues\n-Updated all mods\n\nKnown bugs:\nTire wear mod causes your starting car to not have any grip. Just save and load when you start a new game to fix this.\n\n-Use manual only, main menu automatic transmission/clutch break one of the mods",
+		 "Date": "23.4.2022",
+		 "Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/vanillaen.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/vanillaen.png",
+		 "FileName": "ENHANCED_VANILLA_NICULL.txt"
+     },
+	{
+		"Name": "One of the best Modpacks (hopefully)",
+		 "Version": "1.5",
+		 "Author": "Mazda Astina GT",
+		 "Description": "version 1.5 changelog:\n-Updated all mods on latest version\n-added one mod (trabant/beetle radiator mod)\n\nThis is my modpack that contains 23 mods, if you want to know which mods exactly, ask me or download the modpack and find out yourself!\n\nFun fact:\nThe Vaz2107 on the picture is is my 'Lada 400+'... it drives max about 450 km/h without hyperzine or other cheats, just Large Twin Turbo 7.0L V8.\n\nAnd thanks to Kolben for adding it on the workshop!\n\nMade by Mazda Astina GT#6224 on discord, if you found anything about my modpack or if you have any questions dm me.\n\nversion 1.5 changelog:\n\n-Updated all mods on latest version\n-changed description\n-added few mods and removed few, i kinda changed my opinion on few mods\n-Changed picture because i already removed 2104 mod, my sedan ladas kept on turning into wagon ones...\n\nFun fact:\nThe Vaz2107 on the picture is is my 'Lada 400+'... it drives max about 450 km/h without hyperzine or other cheats, just Large Twin Turbo 7.0L V8.\n\nAnd thanks to Kolben for adding it on the workshop!\nMade by Mazda Astina GT#6224 on discord, if you have any questions about my modpack or me, dm me.",
+		 "Date": "27.5.2022",
+		 "Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/OOTBMP.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/OOTBMP.png",
+		 "FileName": "OOTBMP.txt"
+     },
+	{
+		"Name": "Encolumned's Simplicity",
+		 "Version": "1.1",
+		 "Author": "Encolumned",
+		 "Description": "Bare bones car mods for enhancing what types of cars you can find. No items added, just QoL mods and Car Mods, such as:\n \n2104 and 2107 Lada Riva Estate by RUNDEN\nRHD Mod by RUNDEN \nAutomatic Transmissions by RUNDEN \nCaddyhitch by Serena\nIrakus Phys. Lock [NOT GUTTED] by Serena\nPhyslock for all Cars by Serena\n\nIf you have any issues with the modpack, please contact me on the discord through DMs, then I will try to contact the respective people depending on the issue.",
+		 "Date": "09.01.2022",
+		 "Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/ESkmh.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/ESkmh.png",
+		 "FileName": "ESkmh.txt"
+     },
+	{
+		"Name": "Hardcore Modpack",
+		 "Version": "1.0",
+		 "Author": "Maspunch",
+		 "Description": "A bunch of mods which make the game slightly harder and more interesting if you want some challenge \n \nSerenas Rims \nRundens Tire Damage\nRundens Automatic Autotragic \nRundens RHD \nRundens Lada Spoilers \nRundens Disable Loot Spawn \nRunden Breakable Rocks \nRundens AI \nRundens 2104 \nRundens 2107 Estate \nGhaleas Diesel Cars \nCoolgamers Exploding Cacti \n",
+		 "Date": "22.01.2022",
+		 "Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/hc.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/hc.png",
+		 "FileName": "HardcoreModpack.txt"
+     },
+	{
+		"Name": "TumpyNoodles Exquisite Extentions",
+		 "Version": "3.0",
+		 "Author": "Tumpy_Noodles",
+		 "Description": "Quantity & Quality with an 'All Thrill. No Fill.' Money Back Guarantee\n\nEvery mod that meets my standard of quality that isn't devicive so everyone should be able to enjoy.\n\nIncludes:\n\nEvery Mod Car, Engine (except electric), and Gauge, and includes Badges, Posters, Rims, Turbos, & Automatics.\n'quality-of-life' such as \nPhyslockRad, Caddy&Beetle Hitch, LadaSpoilers, FastPedal, PushHarder, IronSights, BetterCrates, MountAnywhere, & IgnitionBarrels.\n'utillities' like \nCarInfotainmentText, SpawnerESC, WheelPosEditor, SaveFileClearOut, BackgroundAutoSave, DopplerRemover, & SnaptoAxis.\n\nControls:\nENTER -- Cruise Control\nHold SHIFT -- SnaptoAxis\nF2 -- Car Infotainment\nCTRL + ALT + F10 -- SaveFileClearOut\nESC (with 1000km driven) -- Spawner\nScroll Lock -- WheelPosEditor",
+		 "Date": "11.02.2022",
+		 "Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/noodle.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/noodle.png",
+		 "FileName": "Noodle.txt"
+     }
+   ]
+}
