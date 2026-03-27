@@ -1,0 +1,64 @@
+{
+  "Mods": [
+  {
+  	"Name": "长途增强 Mods140+",
+		 "Version": "1.0",
+		 "Author": "QQ 一秋呀",
+		 "Description": "内含mod98K、[AMT] 备胎绑带、[AMT] 直升机模组、[AMT] 车顶行李架和灯条\n-[AMT]摄像机、AI 交通、AMT-汽车扰流板、AMT长途物品装饰、BeanMG.drive 房车模组!、Company Cruiser (Lethal Company)、\n-GAZ-24 - LADA2107、Industrial v8 Engines、Physlock 散热器\n-、Runden 物理枪、Spas-12 霰弹枪、Too stroke for two-stroke、\nV8汽油发动机、一致的里程表、万物皆可改、万物皆可粘、为凯迪拉克安装拖挂、人类 AI（插件）\n-、使液体可见、便捷公里数显示、便携式炮塔、便携收音机、冲锋枪、医疗包、卡尔 、\n 去除仙人掌、双引擎、可探索的新型建筑、可涂漆轮圈、可穿戴头灯、后台自动保存、图形增强、埃隆·马斯克、增压模组、外置油箱模组、多功能工具、大众高尔和大众凯迪的发动机、定制海报、工具枪、巴卡斯拖车挂钩、巴尔卡斯运输车 、弹药箱、徽章、性能增强、手表、拉答 2104（里瓦旅行车）、拉达2107、拉达车用扰流板、指示器模块、排气罩\n、摄像机调整、改进手刹、新轮胎、无睡眠冷却、旧电视机、易碎岩石、普利茅斯 Fury 敞篷车、普利茅斯喷气发动机、更多 UFO、更多冰箱、更多巴卡斯车辆扩展、更多建筑、更多油表、更好的 601 声音、更好的AM广播、更好的箱子 v2、更好的车灯、更好的车辆物理、\n 更好的长途旅行、更强壮的主角、更新的铁瞄具改装、更糟糕的清洁剂、枪击损坏车辆、枪械储存库、柴油 V8 发动机、柴油2101重制版、柴油六缸模组、柴油发动机重制版\n、柴油拉达 2101、柴油甲壳虫发动机、梯子模组、武装皮卡、\n 死腿快蹬、氮气、汽车信息娱乐文本、汽车速度平衡、涡轮、清除路上的石块、温度计、温度计改装件、炸药模组、点火和喇叭按钮，\n 我的夏季汽车 风格、点火式无线电、燃料利用、燃料箱编辑器、燃气罐、物品安装预览、物品检查器、狙击步枪、獾牌旋转发动机、生活质量改进模组、\n 用力推、甲壳虫拖车挂钩、电动机模组 、移除公交车座椅(车保险杠开门按钮消失)、简易图形界面仪表模组、纸板箱、老式录像带模组、自定义电台跳过歌曲、自行车抖动修复、\n 臭猫、苏联吉普车、货物物理锁、资讯广播、走得更快、超嗜碱素 2.0,、路灯与车辆灯光、车牌打印机、\n 车轮位置编辑器、车辆调试模组、车辆追踪器、转速表模组、较轻的碰撞、达契亚1300旅行车、适用于所有汽车的定速巡航、适用于所有汽车的物理锁、速度表改装、\n 长路巡逻、长途工具包、长途检修、随处安装模组、随机尺寸的篮子、霍尔斯科特480卡车(汽油)发动机、额外轮辋、额外食品模组、高尔夫专用定制转速表、\n 高尔夫扰流板、高级天气、高级模组工具包 [AMT] 、成就",
+		 "Date": "27.2.2026",
+		 "Link": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/TLDPlus.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/tldplus.png",
+		 "FileName": "ENHANCED_VANILLA_NICULL.txt"
+     },
+     {
+		"Name": "增强游戏",
+		 "Version": "1.4.7",
+		 "Author": "Nicull",
+		 "Description": "添加了每一个增强原版体验的模组，但不包括Runden的人工智能或RHD汽车（因为它们在游戏中不太合理）\n\n玩这个游戏的最佳方式!\n\n-新增柴油发动机和全新V8\n-新车\n-新轮毂\n-适用于所有汽车的嗯物理锁\n-轮胎磨损\n-涡轮\n-编辑车牌\n-关于拉达和高尔夫的剧透\n-燃油表、温度表和转速表\n-高尔夫球车拖车\n-所有汽车的物理点火开关\n-易碎箱\n-燃油消耗修改器\n-真实手刹\n-随处安装\n-自动变速器\n-以及被拆解的伊卡洛斯模组 \n\n1.2 更新日志:\n-移除了Serena的physlock模组，因为它导致了一些问题\n-已更新所有模组\n\n已知问题:\n轮胎磨损模组导致你刚开始的车没有任何抓地力。只需在开始新游戏时保存并重新加载即可解决这个问题.\n\n-仅使用手动，主菜单自动变速器/离合器打破其中一个改装",
+		 "Date": "23.4.2022",
+		 "Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/vanillaen.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/vanillaen.png",
+		 "FileName": "ENHANCED_VANILLA_NICULL.txt"
+     },
+	{
+		"Name": "可能是最棒的模组包之一",
+		 "Version": "1.5",
+		 "Author": "Mazda Astina GT",
+		 "Description": "版本 1.5 更新日志:\n-已将所有 mod 更新到最新版本\n-添加了一个模组（Trabant/甲壳虫散热器模组）\n\n这是我的模组包，包含23个模组，如果你想知道具体有哪些模组，可以问我或者下载模组包自己查看！\n\n趣闻:\n图片上的Vaz2107是我的“拉达400”……它最多能开到大约450公里/小时，不使用超燃料或其他作弊，仅靠大号双涡轮7.0L V8引擎.\n\n感谢Kolben将其添加到创意工坊!\n\n由 Mazda Astina GT#6224 在 Discord 制作，如果你发现关于我的模组包的任何信息或有任何问题，请私信我",
+		 "Date": "27.5.2022",
+		 "Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/OOTBMP.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/OOTBMP.png",
+		 "FileName": "OOTBMP.txt"
+     },
+	{
+		"Name": "Encolumned 的简洁性",
+		 "Version": "1.1",
+		 "Author": "Encolumned",
+		 "Description": "用于增强你能找到的汽车类型的最基本的汽车改装。没有添加任何物品，只是质量提升和汽车改装，例如：\n \nRUNDEN 的 2104 和 2107 拉达 Riva 旅行车\nRUNDEN 的 RHD 模组.",
+		 "Date": "09.01.2022",
+		 "Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/ESkmh.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/ESkmh.png",
+		 "FileName": "ESkmh.txt"
+     },
+	{
+		"Name": "硬核模组包",
+		 "Version": "1.0",
+		 "Author": "Maspunch",
+		 "Description": "一堆可以让游戏稍微更有挑战性和趣味性的模组，如果你想要一些挑战的话 \n \n塞蕾娜的轮圈 \n伦登的轮胎损坏\n伦登的自动悲剧 \nRundens RHD \nRundens 拉达扰流板 \nRundens 禁用战利品生成 \nRunden 易碎岩石 \nRundens AI \nRundens 2104 \nRundens 2107 \n格利亚斯柴油汽车 \n酷玩家爆炸仙人掌 \n",
+		 "Date": "22.01.2022",
+		 "Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/hc.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/hc.png",
+		 "FileName": "HardcoreModpack.txt"
+     },
+	{
+		"Name": "TumpyNoodles 精美拓展",
+		 "Version": "3.0",
+		 "Author": "Tumpy_Noodles",
+		 "Description": "数量与质量，‘全而刺激，无多余’退款保证\n\n每个符合我质量标准且不具争议性的模组，大家都应该能享受.\n\n包括:\n\n每辆改装车, 发动机（电动除外）和仪表，包括徽章、海报、轮毂、涡轮增压器和自动变速器\n'生活质量' 例如 \nPhyslockRad、凯迪拉克与甲壳虫搭车、拉达扰流板、快踏、用力推、机械瞄具、BetterCrates（更好箱子）, 随处安装, & 点火桶.\n像“实用工具”这样的 \n汽车信息娱乐文本、生成器ESC、车轮位置编辑器、清理保存文件、后台自动保存、多普勒移除器，以及对齐轴。\n\n控制:\nENTER -- 定速巡航\n按住 SHIFT -- 吸附到轴\nF2 -- 车载信息娱乐系统\nCTRL + ALT + F10 -- 保存文件清理\nESC (已行驶1000公里) -- 生成器\nScroll Lock -- 车轮位置编辑器",
+		 "Date": "11.02.2022",
+		 "Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/noodle.txt?inline=false",
+		 "PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/noodle.png",
+		 "FileName": "Noodle.txt"
+     }
+   ]
+}
