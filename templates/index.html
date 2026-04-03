@@ -659,8 +659,10 @@
                 container.innerHTML = '<div class="info">暂无模组包</div>';
                 return;
             }
-            container.innerHTML = allModpacks.map(pack => `
-                <div class="mod-card">
+            container.innerHTML = allModpacks.map(pack => {
+                const packId = `pack-${modDataCounter++}`;
+                return `
+                <div class="mod-card" data-pack-id="${packId}">
                     <div class="mod-image">
                         <img src="${pack.PictureLink || 'https://via.placeholder.com/200x200?text=No+Image'}" 
                              loading="lazy"
@@ -673,11 +675,15 @@
                         <p class="version">版本: ${escapeHtml(pack.Version || '?')}</p>
                         <p class="desc">${escapeHtml(pack.Description ? pack.Description.substring(0, 100) + (pack.Description.length > 100 ? '...' : '') : '暂无描述')}</p>
                         <div class="mod-actions">
+                            <button class="install" data-filename="" data-name="" style="display:none;">安装</button>
+                            <button class="uninstall" data-name="" style="display:none;">卸载</button>
+                            <button class="update" data-name="" style="display:none;">更新</button>
                             <button class="install-modpack" data-pack='${escapeHtml(JSON.stringify(pack))}'>📦 安装模组包</button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
 
             document.querySelectorAll('.install-modpack').forEach(btn => {
                 btn.removeEventListener('click', btn._clickHandler);
@@ -759,8 +765,14 @@
             
             container.innerHTML = installedMods.map(mod => {
                 const needUpdate = mod.installed_version !== mod.Version && mod.Version;
+                const modId = `installed-${modDataCounter++}`;
+                modDataStore.set(modId, { ...mod, modId });
+                
                 return `
-                    <div class="mod-card">
+                    <div class="mod-card" data-mod-id="${modId}">
+                        <div class="favorite-btn" style="display: block; position: absolute; top: 8px; right: 8px; z-index: 10; cursor: pointer;" title="收藏">
+                            ${favorites.has(`${mod.Name}-${mod.FileName}-${currentManageSource}`) ? '★' : '☆'}
+                        </div>
                         <div class="mod-image">
                             <img src="${mod.PictureLink || 'https://via.placeholder.com/200x200?text=No+Image'}" 
                                  loading="lazy"
@@ -773,8 +785,9 @@
                             <p class="version">已安装: ${escapeHtml(mod.installed_version || '?')} | 最新: ${escapeHtml(mod.Version || '?')}</p>
                             <p class="desc">${escapeHtml(mod.Description ? mod.Description.substring(0, 100) + (mod.Description.length > 100 ? '...' : '') : '暂无描述')}</p>
                             <div class="mod-actions">
-                                <button class="uninstall-manage" data-name="${escapeHtml(mod.Name)}">卸载</button>
-                                <button class="update-manage" data-name="${escapeHtml(mod.Name)}" ${needUpdate ? '' : 'disabled'}>${needUpdate ? '更新' : '已是最新'}</button>
+                                <button class="install" data-filename="${escapeHtml(mod.FileName || '')}" data-name="${escapeHtml(mod.Name)}" style="display:none;">安装</button>
+                                <button class="uninstall" data-name="${escapeHtml(mod.Name)}">卸载</button>
+                                <button class="update" data-name="${escapeHtml(mod.Name)}" ${needUpdate ? '' : 'disabled'}>${needUpdate ? '更新' : '已是最新'}</button>
                             </div>
                         </div>
                     </div>
@@ -782,11 +795,34 @@
             }).join('');
             
             bindManageButtons();
+            bindInstalledCardEvents();
         } catch (err) {
             console.error('加载已安装模组失败:', err);
             container.innerHTML = '<div class="error">加载失败</div>';
             showToast('加载已安装模组失败', 'error');
         }
+    }
+    
+    function bindInstalledCardEvents() {
+        const cards = document.querySelectorAll('#installed-list .mod-card');
+        cards.forEach(card => {
+            card.onclick = (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.classList.contains('favorite-btn')) {
+                    return;
+                }
+                const modId = card.dataset.modId;
+                const mod = modDataStore.get(modId);
+                if (mod) showModal(mod);
+            };
+        });
+        
+        document.querySelectorAll('#installed-list .favorite-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const modId = btn.closest('.mod-card').dataset.modId;
+                toggleFavorite(modId);
+            };
+        });
     }
 
     function bindManageButtons() {
@@ -988,7 +1024,8 @@
         modpacks: document.getElementById('modpacks-tab'),
         manage: document.getElementById('manage-tab'),
         settings: document.getElementById('settings-tab'),
-        about: document.getElementById('about-tab')
+        about: document.getElementById('about-tab'),
+        favorites: document.getElementById('favorites-tab')
     };
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1000,6 +1037,7 @@
             if (target === 'manage') loadInstalled(currentManageSource);
             if (target === 'modpacks') loadModpacks(currentModpackSource);
             if (target === 'about') loadLicenseContent();
+            if (target === 'favorites') loadFavorites();
         });
     });
 
@@ -1233,6 +1271,45 @@
     }
     
     // ==================== 收藏功能 ====================
+    async function loadFavoritesFromServer() {
+        try {
+            const res = await fetch('/api/favorites');
+            if (res.ok) {
+                const data = await res.json();
+                favoritesData.clear();
+                favorites.clear();
+                data.favorites.forEach(mod => {
+                    const key = `${mod.Name}-${mod.FileName}-${mod.sourceIndex}`;
+                    favorites.add(key);
+                    favoritesData.set(key, {
+                        mod: mod,
+                        sourceIndex: mod.sourceIndex,
+                        sourceName: MODLIST_SOURCES[mod.sourceIndex]?.name || '未知源'
+                    });
+                });
+                console.log(`从服务器加载了 ${favorites.size} 个收藏`);
+            }
+        } catch (err) {
+            console.error('加载收藏失败:', err);
+        }
+    }
+    
+    async function saveFavoritesToServer() {
+        try {
+            const favList = Array.from(favoritesData.values()).map(data => ({
+                ...data.mod,
+                sourceIndex: data.sourceIndex
+            }));
+            await fetch('/api/favorites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ favorites: favList })
+            });
+        } catch (err) {
+            console.error('保存收藏失败:', err);
+        }
+    }
+    
     function toggleFavorite(modId) {
         const mod = modDataStore.get(modId);
         if (!mod) return;
@@ -1246,15 +1323,18 @@
         } else {
             favorites.add(favoriteKey);
             favoritesData.set(favoriteKey, {
-                mod: mod,
+                mod: { ...mod },
                 sourceIndex: currentBrowseSource,
-                sourceName: MODLIST_SOURCES[currentBrowseSource].name
+                sourceName: MODLIST_SOURCES[currentBrowseSource]?.name || '未知源'
             });
             showToast(`已收藏 ${mod.Name}`, 'success');
         }
         
         // 更新收藏按钮状态
         updateFavoriteButton(modId);
+        
+        // 保存到服务器
+        saveFavoritesToServer();
     }
     
     // 收藏页面源选择器事件
@@ -1264,6 +1344,15 @@
         localStorage.setItem('selected_browse_source', source);
         await loadFavorites();
     });
+    
+    // 同步所有源选择器
+    function syncSourceSelects() {
+        const selects = ['source-select', 'modpack-source-select', 'manage-source-select', 'favorites-source-select'];
+        selects.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = currentBrowseSource;
+        });
+    }
     
     function updateFavoriteButton(modId) {
         const mod = modDataStore.get(modId);
@@ -1290,20 +1379,30 @@
         container.innerHTML = '<div class="loading">加载收藏的模组...</div>';
         
         try {
-            // 获取所有收藏的模组数据
-            const favoriteMods = Array.from(favoritesData.values()).map(data => data.mod);
+            // 从服务器加载收藏
+            await loadFavoritesFromServer();
+            
+            const favoriteMods = Array.from(favoritesData.values());
             
             if (favoriteMods.length === 0) {
                 container.innerHTML = '<div class="info">暂无收藏的模组</div>';
                 return;
             }
             
-            container.innerHTML = favoriteMods.map(mod => {
-                const favoriteKey = `${mod.Name}-${mod.FileName}-${currentBrowseSource}`;
-                const isFavorited = favorites.has(favoriteKey);
+            // 加载已安装状态
+            const installedRes = await fetch(`/api/mods?source=${currentBrowseSource}&strict=${document.getElementById('strict-mode').checked}`);
+            const installedData = installedRes.ok ? await installedRes.json() : { mods: [] };
+            const installedNames = new Set(installedData.mods.filter(m => m.is_installed).map(m => m.Name));
+            
+            container.innerHTML = favoriteMods.map(data => {
+                const mod = data.mod;
+                const isInstalled = installedNames.has(mod.Name);
+                const modId = `fav-${modDataCounter++}`;
+                modDataStore.set(modId, { ...mod, is_installed: isInstalled, modId });
                 
                 return `
-                <div class="mod-card" data-mod-id="${modDataCounter++}">
+                <div class="mod-card" data-mod-id="${modId}">
+                    <div class="favorite-btn favorited" style="display: block; position: absolute; top: 8px; right: 8px; z-index: 10; cursor: pointer;" title="取消收藏">★</div>
                     <div class="mod-image">
                         <img src="${mod.PictureLink || 'https://via.placeholder.com/200x200?text=No+Image'}" 
                              loading="lazy"
@@ -1316,11 +1415,11 @@
                         <p class="version">${window.translations && window.translations.version ? window.translations.version : '版本:'} ${escapeHtml(mod.Version || '?')}</p>
                         <p class="desc">${escapeHtml(mod.Description ? mod.Description.substring(0, 100) + (mod.Description.length > 100 ? '...' : '') : (window.translations && window.translations.no_description ? window.translations.no_description : '暂无描述'))}</p>
                         <div class="mod-actions">
-                            ${mod.is_installed ? 
-                                `<button class="uninstall" data-name="${escapeHtml(mod.Name || (window.translations && window.translations.unknown ? window.translations.unknown + '模组' : '未知模组'))}" data-filename="${escapeHtml(mod.FileName || '')}">${window.translations && window.translations.uninstall ? window.translations.uninstall : '卸载'}</button>` : 
+                            ${isInstalled ? 
+                                `<button class="uninstall" data-name="${escapeHtml(mod.Name)}">${window.translations && window.translations.uninstall ? window.translations.uninstall : '卸载'}</button>` : 
                                 (mod.FileName && mod.FileName.trim() !== '' ?
-                                    `<button class="install" data-filename="${escapeHtml(mod.FileName)}" data-name="${escapeHtml(mod.Name || (window.translations && window.translations.unknown ? window.translations.unknown + '模组' : '未知模组'))}">${window.translations && window.translations.install ? window.translations.install : '安装'}</button>` :
-                                    `<button class="install disabled" data-name="${escapeHtml(mod.Name || (window.translations && window.translations.unknown ? window.translations.unknown + '模组' : '未知模组'))}" title="${window.translations && window.translations.error_no_filename ? window.translations.error_no_filename : '此模组缺少文件名，无法安装'}" disabled>${window.translations && window.translations.cannot_install ? window.translations.cannot_install : '无法安装'}</button>`
+                                    `<button class="install" data-filename="${escapeHtml(mod.FileName)}" data-name="${escapeHtml(mod.Name)}">${window.translations && window.translations.install ? window.translations.install : '安装'}</button>` :
+                                    `<button class="install disabled" data-name="${escapeHtml(mod.Name)}" disabled>${window.translations && window.translations.cannot_install ? window.translations.cannot_install : '无法安装'}</button>`
                                 )
                             }
                         </div>
@@ -1329,7 +1428,6 @@
                 `;
             }).join('');
             
-            // 绑定收藏页面的事件
             bindFavoritesEvents();
             
         } catch (err) {
@@ -1339,19 +1437,27 @@
     }
     
     function bindFavoritesEvents() {
-        // 绑定收藏页面的安装/卸载按钮
         bindButtonEvents();
         
-        // 绑定收藏按钮（如果存在）
-        document.querySelectorAll('.favorite-btn').forEach(btn => {
-            btn.removeEventListener('click', btn._favoriteHandler);
-            const handler = (e) => {
+        document.querySelectorAll('#favorites-list .favorite-btn').forEach(btn => {
+            btn.onclick = (e) => {
                 e.stopPropagation();
                 const modId = btn.closest('.mod-card').dataset.modId;
                 toggleFavorite(modId);
+                // 重新加载收藏列表
+                loadFavorites();
             };
-            btn.addEventListener('click', handler);
-            btn._favoriteHandler = handler;
+        });
+        
+        document.querySelectorAll('#favorites-list .mod-card').forEach(card => {
+            card.onclick = (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                    return;
+                }
+                const modId = card.dataset.modId;
+                const mod = modDataStore.get(modId);
+                if (mod) showModal(mod);
+            };
         });
     }
 
@@ -1623,7 +1729,7 @@
     startTaskPolling();
 
     // 初始加载（强制使用极狐源）
-    loadSources().then(() => {
+    loadSources().then(async () => {
         currentBrowseSource = 0;
         currentModpackSource = 0;
         currentManageSource = 0;
@@ -1642,6 +1748,9 @@
         
         // 初始化波纹效果
         initRippleEffects();
+        
+        // 从服务器加载收藏
+        await loadFavoritesFromServer();
         
         loadMods(currentBrowseSource);
         loadModpacks(currentModpackSource);

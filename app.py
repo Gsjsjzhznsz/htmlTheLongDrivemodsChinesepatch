@@ -6,9 +6,12 @@ import zipfile
 import time
 import threading
 import logging
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from urllib.parse import urlparse
 import sys
+import ctypes
+import platform
 
 import requests
 from flask import Flask, jsonify, render_template, request, send_from_directory
@@ -21,6 +24,85 @@ def get_resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+
+def is_admin():
+    """检测是否以管理员权限运行"""
+    try:
+        if platform.system() == 'Windows':
+            return ctypes.windll.shell32.IsUserAnAdmin() != 0
+        else:
+            return os.geteuid() == 0
+    except Exception:
+        return False
+
+def get_documents_path():
+    """获取用户文档路径，处理管理员权限导致的路径重定向"""
+    if platform.system() == 'Windows':
+        base_documents = Path.home() / "Documents"
+        if is_admin():
+            local_appdata = Path(os.environ.get('LOCALAPPDATA', ''))
+            if local_appdata:
+                redirected = local_appdata / "VirtualStore" / "Users" / os.environ.get('USERNAME', '') / "Documents"
+                if redirected.exists():
+                    return redirected
+        return base_documents
+    else:
+        return Path.home() / "Documents"
+
+def get_game_path():
+    """获取游戏文件夹路径"""
+    return get_documents_path() / "TheLongDrive"
+
+def get_favorites_path():
+    """获取收藏文件路径"""
+    return get_game_path() / "favorites.xml"
+
+def load_favorites():
+    """从XML文件加载收藏列表"""
+    fav_path = get_favorites_path()
+    favorites = []
+    if fav_path.exists():
+        try:
+            tree = ET.parse(fav_path)
+            root = tree.getroot()
+            for item in root.findall('mod'):
+                mod_data = {
+                    'Name': item.find('Name').text if item.find('Name') is not None else '',
+                    'FileName': item.find('FileName').text if item.find('FileName') is not None else '',
+                    'Author': item.find('Author').text if item.find('Author') is not None else '',
+                    'Version': item.find('Version').text if item.find('Version') is not None else '',
+                    'Description': item.find('Description').text if item.find('Description') is not None else '',
+                    'Category': item.find('Category').text if item.find('Category') is not None else '',
+                    'PictureLink': item.find('PictureLink').text if item.find('PictureLink') is not None else '',
+                    'Link': item.find('Link').text if item.find('Link') is not None else '',
+                    'Date': item.find('Date').text if item.find('Date') is not None else '',
+                    'Dependency': item.find('Dependency').text if item.find('Dependency') is not None else '',
+                    'sourceIndex': int(item.find('sourceIndex').text) if item.find('sourceIndex') is not None and item.find('sourceIndex').text else 0
+                }
+                favorites.append(mod_data)
+            logger.info(f"从 {fav_path} 加载了 {len(favorites)} 个收藏")
+        except Exception as e:
+            logger.error(f"加载收藏文件失败: {e}")
+    return favorites
+
+def save_favorites(favorites):
+    """保存收藏列表到XML文件"""
+    fav_path = get_favorites_path()
+    fav_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        root = ET.Element('favorites')
+        for mod in favorites:
+            item = ET.SubElement(root, 'mod')
+            for key, value in mod.items():
+                child = ET.SubElement(item, key)
+                child.text = str(value) if value is not None else ''
+        tree = ET.ElementTree(root)
+        tree.write(fav_path, encoding='utf-8', xml_declaration=True)
+        logger.info(f"收藏已保存到 {fav_path}，共 {len(favorites)} 个")
+        return True
+    except Exception as e:
+        logger.error(f"保存收藏文件失败: {e}")
+        return False
 
 # 日志配置
 def setup_logging():
@@ -73,14 +155,18 @@ app = Flask(__name__,
 # 基础路径（用于本地文件）
 BASE_DIR = Path(get_resource_path("."))
 
-# 游戏路径配置
-DOCUMENTS_PATH = Path.home() / "Documents"
-GAME_PATH = DOCUMENTS_PATH / "TheLongDrive"
+# 游戏路径配置（使用新的路径处理函数）
+DOCUMENTS_PATH = get_documents_path()
+GAME_PATH = get_game_path()
 MODS_PATH = GAME_PATH / "Mods"
 VERSIONS_PATH = MODS_PATH / "temp" / "Versions"
 
 MODS_PATH.mkdir(parents=True, exist_ok=True)
 VERSIONS_PATH.mkdir(parents=True, exist_ok=True)
+
+logger.info(f"用户文档路径: {DOCUMENTS_PATH}")
+logger.info(f"游戏路径: {GAME_PATH}")
+logger.info(f"管理员模式: {is_admin()}")
 
 # 模组列表源配置（使用 BASE_DIR）
 MODLIST_SOURCES = [
@@ -992,6 +1078,36 @@ def get_translations():
     
     translations = load_translations(lang)
     return jsonify({"lang": lang, "translations": translations})
+
+@app.route("/api/favorites", methods=["GET"])
+def get_favorites():
+    """获取收藏列表"""
+    favorites = load_favorites()
+    return jsonify({"favorites": favorites})
+
+@app.route("/api/favorites", methods=["POST"])
+def save_favorites_route():
+    """保存收藏列表"""
+    data = request.get_json()
+    if not data or not isinstance(data.get("favorites"), list):
+        return jsonify({"error": "缺少收藏数据"}), 400
+    
+    favorites = data.get("favorites", [])
+    ok = save_favorites(favorites)
+    if ok:
+        return jsonify({"success": True, "count": len(favorites)})
+    else:
+        return jsonify({"error": "保存失败"}), 500
+
+@app.route("/api/paths")
+def get_paths():
+    """获取路径信息"""
+    return jsonify({
+        "documents_path": str(DOCUMENTS_PATH),
+        "game_path": str(GAME_PATH),
+        "mods_path": str(MODS_PATH),
+        "is_admin": is_admin()
+    })
 
 @app.errorhandler(Exception)
 def handle_exception(e):
