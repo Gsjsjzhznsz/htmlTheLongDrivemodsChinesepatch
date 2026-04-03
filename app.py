@@ -889,6 +889,57 @@ def install_modpack_route():
         return jsonify({"error": result}), 500
     return jsonify({"success": True, "results": result})
 
+@app.route("/api/get-installed-filenames", methods=["GET"])
+def get_installed_filenames():
+    """获取已安装模组的文件名列表用于导出"""
+    installed = get_installed_mods()
+    filenames = []
+    for name in installed.keys():
+        manifest_path = VERSIONS_PATH / f"{name}_manifest.json"
+        if manifest_path.exists():
+            try:
+                files = json.loads(manifest_path.read_text(encoding="utf-8"))
+                for f in files:
+                    if f.endswith('.dll'):
+                        filenames.append(os.path.basename(f))
+            except:
+                pass
+    return jsonify({"filenames": filenames})
+
+@app.route("/api/install-from-filenames", methods=["POST"])
+def install_from_filenames():
+    """根据文件名列表安装模组"""
+    data = request.get_json()
+    if not data or not isinstance(data.get("filenames"), list):
+        return jsonify({"error": "缺少文件名列表"}), 400
+    
+    filenames = data.get("filenames", [])
+    source_index = data.get("source", 4)
+    
+    installed = get_installed_mods()
+    results = []
+    
+    for fn in filenames:
+        fn = fn.strip()
+        if not fn or fn.startswith("#"):
+            continue
+        mod = find_mod_by_filename(fn, source_index)
+        if not mod:
+            results.append(f"❌ {fn} 不存在于模组列表中")
+            continue
+        mod_name = mod.get("Name", fn)
+        if mod_name in installed:
+            results.append(f"⏭️ {mod_name} 已安装，跳过")
+            continue
+        _, err = install_with_deps(mod, installed, source_index)
+        if err:
+            results.append(f"❌ {mod_name}: {err}")
+        else:
+            installed[mod_name] = mod.get("Version", "0")
+            results.append(f"✅ {mod_name} 安装成功")
+    
+    return jsonify({"success": True, "results": results})
+
 @app.route("/api/license")
 def get_license():
     """获取许可证文件内容"""

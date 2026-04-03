@@ -1859,3 +1859,33 @@
 2026-04-03 21:30:37,306 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:30:37] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
 2026-04-03 21:30:38,133 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:30:38] "GET /static/tld.ico HTTP/1.1" 200 -
 2026-04-03 21:30:38,206 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:30:38] "[36mGET /static/tld.ico HTTP/1.1[0m" 304 -
+2026-04-03 21:35:28,840 - __main__ - INFO - BASE_DIR: C:\Users\Administrator\Documents\GitHub\htmlTheLongDrivemodsChinesepatch
+2026-04-03 21:35:28,841 - __main__ - INFO - BASE_DIR exists: True
+2026-04-03 21:35:28,842 - __main__ - INFO - 本地 modlist_3.json 存在
+2026-04-03 21:35:28,921 - __main__ - INFO - 用户文档路径: C:\Users\Administrator\Documents
+2026-04-03 21:35:28,921 - __main__ - INFO - 游戏路径: C:\Users\Administrator\Documents\TheLongDrive
+2026-04-03 21:35:28,922 - __main__ - INFO - 管理员模式: True
+2026-04-03 21:35:28,937 - __main__ - INFO - 已启动自动打开浏览器线程
+2026-04-03 21:35:28,966 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-04-03 21:35:28,966 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-04-03 21:35:31,128 - __main__ - INFO - 已自动打开浏览器
+2026-04-03 21:35:31,481 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:35:31] "GET / HTTP/1.1" 200 -
+2026-04-03 21:35:31,836 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:35:31] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-03 21:36:12,817 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:36:12] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-03 21:36:12,828 - __main__ - ERROR - 未捕获的异常
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 1484, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 1458, in dispatch_request
+    self.raise_routing_exception(req)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 1440, in raise_routing_exception
+    raise request.routing_exception  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\ctx.py", line 353, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-04-03 21:36:12,838 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:36:12] "[35m[1mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 500 -

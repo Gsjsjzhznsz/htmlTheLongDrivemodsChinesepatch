@@ -66,7 +66,11 @@
 
         <!-- 模组包标签页 -->
         <div id="modpacks-tab" class="tab-content">
-            <div class="top-bar" style="justify-content: flex-end;">
+            <div class="top-bar" style="justify-content: space-between;">
+                <div class="modpack-actions">
+                    <button id="import-modpack-btn" class="action-btn">📥 导入模组包</button>
+                    <button id="export-modpack-btn" class="action-btn">📤 导出已安装</button>
+                </div>
                 <div class="source-selector">
                     <label>{% if translations and translations.data_source %}{{ translations.data_source }}{% else %}📡 数据源：{% endif %}</label>
                     <select id="modpack-source-select">
@@ -74,6 +78,17 @@
                     </select>
                 </div>
             </div>
+            <input type="file" id="modpack-file-input" accept=".txt" style="display: none;">
+            <div id="modpack-list" class="mod-grid">
+                <div class="loading">加载模组包列表中...</div>
+            </div>
+        </div>
+                <div class="modpack-import-export">
+                    <button id="import-modpack-btn" class="action-btn">📥 导入模组包</button>
+                    <button id="export-modpack-btn" class="action-btn">📤 导出已安装</button>
+                </div>
+            </div>
+            <input type="file" id="modpack-file-input" accept=".txt" style="display: none;">
             <div id="modpack-list" class="mod-grid">
                 <div class="loading">加载模组包列表中...</div>
             </div>
@@ -123,7 +138,7 @@
                     </div>
                     <div class="setting-item">
                         <label>字体颜色：</label>
-                        <input type="color" id="text-color" value="#eef">
+                        <input type="color" id="text-color" value="#eeeeff">
                         <button id="reset-text-color" class="small-btn">重置</button>
                     </div>
                     <button id="apply-theme" class="install">应用主题</button>
@@ -680,6 +695,72 @@
         document.getElementById('close-result-btn').onclick = () => modal.style.display = 'none';
         document.querySelector('.close-result').onclick = () => modal.style.display = 'none';
     }
+
+    // ==================== 模组包导入导出 ====================
+    document.getElementById('import-modpack-btn').onclick = () => {
+        document.getElementById('modpack-file-input').click();
+    };
+    
+    document.getElementById('modpack-file-input').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const text = await file.text();
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+        
+        if (lines.length === 0) {
+            showToast('文件为空或格式不正确', 'error');
+            return;
+        }
+        
+        if (!confirm(`将导入 ${lines.length} 个模组，是否继续？`)) return;
+        
+        showToast('正在导入模组包...', 'info');
+        
+        try {
+            const res = await fetch('/api/install-from-filenames', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filenames: lines, source: currentBrowseSource })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showModpackResult(data.results);
+                await loadMods(currentBrowseSource);
+                await loadInstalled();
+            } else {
+                showToast(`导入失败: ${data.error}`, 'error');
+            }
+        } catch (err) {
+            showToast('导入失败', 'error');
+        }
+        e.target.value = '';
+    };
+    
+    document.getElementById('export-modpack-btn').onclick = async () => {
+        try {
+            const res = await fetch('/api/get-installed-filenames');
+            const data = await res.json();
+            
+            if (!data.filenames || data.filenames.length === 0) {
+                showToast('没有已安装的模组', 'warning');
+                return;
+            }
+            
+            const content = data.filenames.join('\n');
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'installed_mods_' + new Date().toISOString().slice(0, 10) + '.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showToast(`已导出 ${data.filenames.length} 个模组`, 'success');
+        } catch (err) {
+            showToast('导出失败', 'error');
+        }
+    };
 
     // ==================== 已安装模组管理 ====================
     async function loadInstalled(source) {
