@@ -44,13 +44,11 @@
                     <button id="grid-view-btn" class="view-btn active">{% if translations and translations.grid_view %}{{ translations.grid_view }}{% else %}🖼️ 卡片视图{% endif %}</button>
                     <button id="list-view-btn" class="view-btn">{% if translations and translations.list_view %}{{ translations.list_view }}{% else %}📄 列表视图{% endif %}</button>
                 </div>
-                <div class="batch-actions">
-                    <button id="multi-select-btn" class="action-btn">多选</button>
-                    <button id="select-all-btn" class="action-btn">全选</button>
-                    <button id="reverse-select-btn" class="action-btn">反选</button>
-                    <button id="batch-install-btn" class="action-btn" disabled>批量安装</button>
-                    <button id="batch-uninstall-btn" class="action-btn" disabled>批量卸载</button>
-                    <button id="batch-update-btn" class="action-btn" disabled>批量更新</button>
+                <div class="batch-actions" style="display: none;">
+                    <button id="multi-select-btn" class="action-btn">{% if translations and translations.multi_select %}{{ translations.multi_select }}{% else %}多选{% endif %}</button>
+                    <button id="batch-install-btn" class="action-btn" disabled>{% if translations and translations.batch_install %}{{ translations.batch_install }}{% else %}批量安装{% endif %}</button>
+                    <button id="batch-uninstall-btn" class="action-btn" disabled>{% if translations and translations.batch_uninstall %}{{ translations.batch_uninstall }}{% else %}批量卸载{% endif %}</button>
+                    <button id="batch-update-btn" class="action-btn" disabled>{% if translations and translations.batch_update %}{{ translations.batch_update }}{% else %}批量更新{% endif %}</button>
                 </div>
             </div>
             <div class="filters">
@@ -66,11 +64,7 @@
 
         <!-- 模组包标签页 -->
         <div id="modpacks-tab" class="tab-content">
-            <div class="top-bar" style="justify-content: space-between;">
-                <div class="modpack-actions">
-                    <button id="import-modpack-btn" class="action-btn">📥 导入模组包</button>
-                    <button id="export-modpack-btn" class="action-btn">📤 导出已安装</button>
-                </div>
+            <div class="top-bar" style="justify-content: flex-end;">
                 <div class="source-selector">
                     <label>{% if translations and translations.data_source %}{{ translations.data_source }}{% else %}📡 数据源：{% endif %}</label>
                     <select id="modpack-source-select">
@@ -78,17 +72,6 @@
                     </select>
                 </div>
             </div>
-            <input type="file" id="modpack-file-input" accept=".txt" style="display: none;">
-            <div id="modpack-list" class="mod-grid">
-                <div class="loading">加载模组包列表中...</div>
-            </div>
-        </div>
-                <div class="modpack-import-export">
-                    <button id="import-modpack-btn" class="action-btn">📥 导入模组包</button>
-                    <button id="export-modpack-btn" class="action-btn">📤 导出已安装</button>
-                </div>
-            </div>
-            <input type="file" id="modpack-file-input" accept=".txt" style="display: none;">
             <div id="modpack-list" class="mod-grid">
                 <div class="loading">加载模组包列表中...</div>
             </div>
@@ -138,7 +121,7 @@
                     </div>
                     <div class="setting-item">
                         <label>字体颜色：</label>
-                        <input type="color" id="text-color" value="#eeeeff">
+                        <input type="color" id="text-color" value="#eef">
                         <button id="reset-text-color" class="small-btn">重置</button>
                     </div>
                     <button id="apply-theme" class="install">应用主题</button>
@@ -257,36 +240,20 @@
     </div>
 
 <script>
-    // ==================== 全局变量 ====================
     let allMods = [];
     let allModpacks = [];
     let categories = new Set();
+    let currentCategory = '';
+    let currentSearch = '';
+    let currentView = 'grid';
     let taskInterval = null;
-    let sources = [];
 
     // 各页面的当前源索引（独立存储）
     let currentBrowseSource = 0;
     let currentModpackSource = 0;
     let currentManageSource = 0;
 
-    // 数据存储
-    const modDataStore = new Map();
-    let modDataCounter = 0;
-
-    // 多选状态
-    const selectedMods = new Set();
-    let isMultiSelectMode = false;
-
-    // 收藏管理
-    const favorites = new Set();
-    let favoritesData = new Map();
-
-    // ==================== 工具函数 ====================
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
-    }
-
+    // Toast 通知
     function showToast(message, type = 'info') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
@@ -371,25 +338,44 @@
     }
 
     document.getElementById('download-toggle').onclick = () => {
-        document.getElementById('download-manager').classList.toggle('collapsed');
+        const manager = document.getElementById('download-manager');
+        manager.classList.toggle('collapsed');
     };
 
     // ==================== 源加载 ====================
     async function loadSources() {
         try {
             const res = await fetch('/api/sources');
-            console.log('源 API 响应状态:', res.status);
-            sources = await res.json();
-            console.log('源列表:', sources);
+            const sources = await res.json();
             
-            const html = sources.map(s => `<option value="${s.index}">${escapeHtml(s.name)}</option>`).join('');
+            const browseSelect = document.getElementById('source-select');
+            if (browseSelect) {
+                browseSelect.innerHTML = sources.map(s => `<option value="${s.index}">${escapeHtml(s.name)}</option>`).join('');
+                // 默认使用极狐源（索引 0），忽略之前的存储
+                currentBrowseSource = 0;
+                browseSelect.value = currentBrowseSource;
+            }
             
-            ['source-select', 'modpack-source-select', 'manage-source-select', 'favorites-source-select'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.innerHTML = html;
-            });
+            const modpackSelect = document.getElementById('modpack-source-select');
+            if (modpackSelect) {
+                modpackSelect.innerHTML = sources.map(s => `<option value="${s.index}">${escapeHtml(s.name)}</option>`).join('');
+                currentModpackSource = 0;
+                modpackSelect.value = currentModpackSource;
+            }
+            
+            const manageSelect = document.getElementById('manage-source-select');
+            if (manageSelect) {
+                manageSelect.innerHTML = sources.map(s => `<option value="${s.index}">${escapeHtml(s.name)}</option>`).join('');
+                currentManageSource = 0;
+                manageSelect.value = currentManageSource;
+            }
         } catch (e) {
             console.error('加载源列表失败', e);
+            const selects = ['source-select', 'modpack-source-select', 'manage-source-select'];
+            selects.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '<option value="0">加载失败</option>';
+            });
         }
     }
 
@@ -397,26 +383,26 @@
     async function loadMods(source) {
         const container = document.getElementById('mod-list');
         container.innerHTML = '<div class="loading">加载模组列表中...</div>';
+        const strict = document.getElementById('strict-mode').checked;
         try {
-            const res = await fetch(`/api/mods?source=${source}`);
-            console.log('模组 API 响应状态:', res.status);
-            if (!res.ok) {
-                container.innerHTML = `<div class="error">加载失败: HTTP ${res.status}</div>`;
-                return;
-            }
+            const res = await fetch(`/api/mods?source=${source}&strict=${strict}`);
             const data = await res.json();
-            console.log('模组数据:', data);
-            allMods = data.mods || [];
+            allMods = data.mods;
             if (data.active_source !== undefined) {
                 currentBrowseSource = data.active_source;
                 const select = document.getElementById('source-select');
-                if (select) select.value = currentBrowseSource;
+                if (select && select.value != data.active_source) select.value = data.active_source;
+                // 提示源回退（仅在非严格模式且源发生变化时）
+                if (!strict && data.active_source !== source) {
+                    const selectedSourceName = document.getElementById('source-select').options[source]?.text || `源 ${source}`;
+                    const actualSourceName = document.getElementById('source-select').options[data.active_source]?.text || `源 ${data.active_source}`;
+                    showToast(`⚠️ ${selectedSourceName} 加载失败，已自动切换到 ${actualSourceName}`, 'warning');
+                }
             }
             updateCategories();
             filterMods();
         } catch (err) {
-            console.error('加载模组列表失败', err);
-            container.innerHTML = '<div class="error">加载失败，请确保后端运行中: ' + err.message + '</div>';
+            container.innerHTML = '<div class="error">加载失败，请确保后端运行中</div>';
             showToast('加载模组列表失败', 'error');
         }
     }
@@ -427,16 +413,24 @@
             if (mod.Category) categories.add(mod.Category);
         });
         const catSelect = document.getElementById('category');
-        const allCategoriesText = window.translations?.all_categories || '所有分类';
+        // 使用翻译文本
+        const allCategoriesText = window.translations && window.translations.all_categories 
+            ? window.translations.all_categories 
+            : '所有分类';
         catSelect.innerHTML = `<option value="">${allCategoriesText}</option>`;
         Array.from(categories).sort().forEach(cat => {
-            catSelect.innerHTML += `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`;
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            catSelect.appendChild(option);
         });
     }
 
     function filterMods() {
         const searchTerm = document.getElementById('search').value.toLowerCase();
         const category = document.getElementById('category').value;
+        currentSearch = searchTerm;
+        currentCategory = category;
         const filtered = allMods.filter(mod => {
             const matchSearch = mod.Name.toLowerCase().includes(searchTerm) ||
                                 (mod.Author && mod.Author.toLowerCase().includes(searchTerm));
@@ -449,22 +443,45 @@
     function renderMods(mods) {
         const container = document.getElementById('mod-list');
         if (!mods.length) {
-            container.innerHTML = `<div class="info">${window.translations?.no_mods_found || '没有找到模组'}</div>`;
+            const noModsText = window.translations && window.translations.no_mods_found ? window.translations.no_mods_found : '没有找到模组';
+            container.innerHTML = `<div class="info">${noModsText}</div>`;
             return;
         }
         
+        // 调试：检查缺少文件名的模组
+        const modsWithMissingFilename = mods.filter(mod => !mod.FileName || mod.FileName.trim() === '');
+        if (modsWithMissingFilename.length > 0) {
+            console.warn(`发现 ${modsWithMissingFilename.length} 个模组缺少文件名:`, modsWithMissingFilename.map(m => ({
+                Name: m.Name,
+                FileName: m.FileName,
+                Link: m.Link
+            })));
+            
+            // 尝试从Link提取文件名
+            modsWithMissingFilename.forEach(mod => {
+                if (mod.Link) {
+                    const linkParts = mod.Link.split('/');
+                    const extractedFilename = linkParts[linkParts.length - 1];
+                    if (extractedFilename && extractedFilename.includes('.')) {
+                        console.log(`从Link提取文件名: ${mod.Name} -> ${extractedFilename}`);
+                        mod.FileName = extractedFilename;
+                    }
+                }
+            });
+        }
+        
         container.innerHTML = mods.map(mod => {
+            // 为每个模组分配唯一ID并存储数据
             const modId = `mod-${modDataCounter++}`;
             modDataStore.set(modId, { ...mod, modId });
-            const favKey = `${mod.Name}-${mod.FileName}-${currentBrowseSource}`;
             
             return `
             <div class="mod-card" data-mod-id="${modId}">
                 <div class="mod-checkbox" style="display: none; position: absolute; top: 8px; left: 8px; z-index: 10;">
                     <input type="checkbox" class="mod-select-checkbox" data-mod-id="${modId}" ${selectedMods.has(modId) ? 'checked' : ''}>
                 </div>
-                <div class="favorite-btn" style="position: absolute; top: 8px; right: 8px; z-index: 10; cursor: pointer; font-size: 18px;" title="收藏">
-                    ${favorites.has(favKey) ? '★' : '☆'}
+                <div class="favorite-btn" style="display: block; position: absolute; top: 8px; right: 8px; z-index: 10; cursor: pointer;" title="收藏">
+                    ${favorites.has(`${mod.Name}-${mod.FileName}-${currentBrowseSource}`) ? '★' : '☆'}
                 </div>
                 <div class="mod-image">
                     <img src="${mod.PictureLink || 'https://via.placeholder.com/200x200?text=No+Image'}" 
@@ -474,52 +491,100 @@
                 </div>
                 <div class="mod-info">
                     <h3>${escapeHtml(mod.Name)}</h3>
-                    <p class="author">${window.translations?.author || '作者:'} ${escapeHtml(mod.Author || (window.translations?.unknown || '未知'))}</p>
-                    <p class="version">${window.translations?.version || '版本:'} ${escapeHtml(mod.Version || '?')}</p>
-                    <p class="desc">${escapeHtml(mod.Description ? mod.Description.substring(0, 80) + (mod.Description.length > 80 ? '...' : '') : (window.translations?.no_description || '暂无描述'))}</p>
+                    <p class="author">${window.translations && window.translations.author ? window.translations.author : '作者:'} ${escapeHtml(mod.Author || (window.translations && window.translations.unknown ? window.translations.unknown : '未知'))}</p>
+                    <p class="version">${window.translations && window.translations.version ? window.translations.version : '版本:'} ${escapeHtml(mod.Version || '?')}</p>
+                    <p class="desc">${escapeHtml(mod.Description ? mod.Description.substring(0, 100) + (mod.Description.length > 100 ? '...' : '') : (window.translations && window.translations.no_description ? window.translations.no_description : '暂无描述'))}</p>
                     <div class="mod-actions">
-                        ${mod.is_installed 
-                            ? `<button class="uninstall" data-mod-id="${modId}" data-name="${escapeHtml(mod.Name)}">${window.translations?.uninstall || '卸载'}</button>
-                               <button class="update" data-mod-id="${modId}" data-name="${escapeHtml(mod.Name)}">${window.translations?.update || '更新'}</button>`
-                            : (mod.FileName && mod.FileName.trim() !== ''
-                                ? `<button class="install" data-mod-id="${modId}" data-filename="${escapeHtml(mod.FileName)}" data-name="${escapeHtml(mod.Name)}">${window.translations?.install || '安装'}</button>`
-                                : `<button class="install disabled" disabled>${window.translations?.cannot_install || '无法安装'}</button>`
-                              )
+                        ${mod.is_installed ? 
+                            `<button class="uninstall" data-name="${escapeHtml(mod.Name || (window.translations && window.translations.unknown ? window.translations.unknown + '模组' : '未知模组'))}" data-filename="${escapeHtml(mod.FileName || '')}">${window.translations && window.translations.uninstall ? window.translations.uninstall : '卸载'}</button>` : 
+                            (mod.FileName && mod.FileName.trim() !== '' ?
+                                `<button class="install" data-filename="${escapeHtml(mod.FileName)}" data-name="${escapeHtml(mod.Name || (window.translations && window.translations.unknown ? window.translations.unknown + '模组' : '未知模组'))}">${window.translations && window.translations.install ? window.translations.install : '安装'}</button>` :
+                                `<button class="install disabled" data-name="${escapeHtml(mod.Name || (window.translations && window.translations.unknown ? window.translations.unknown + '模组' : '未知模组'))}" title="${window.translations && window.translations.error_no_filename ? window.translations.error_no_filename : '此模组缺少文件名，无法安装'}" disabled>${window.translations && window.translations.cannot_install ? window.translations.cannot_install : '无法安装'}</button>`
+                            )
                         }
                     </div>
                 </div>
-            </div>`;
-        }).join('');
+            </div>
+        `}).join('');
 
-        bindModCardEvents();
-        updateMultiSelectUI();
+        bindButtonEvents();
+        
+        // 绑定卡片点击事件
+        const cards = document.querySelectorAll('.mod-card');
+        cards.forEach((card, index) => {
+            // 移除旧的事件监听器
+            if (card._clickHandler) {
+                card.removeEventListener('click', card._clickHandler);
+            }
+            
+            const handler = (e) => {
+                // 如果点击的是按钮或选择框，不处理
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.classList.contains('mod-select-checkbox') || e.target.classList.contains('favorite-btn')) {
+                    return;
+                }
+                
+                try {
+                    const modId = card.dataset.modId;
+                    const mod = modDataStore.get(modId);
+                    if (mod) {
+                        showModal(mod);
+                    } else {
+                        console.error('找不到模组数据:', modId);
+                    }
+                } catch (err) {
+                    console.error('打开模态框失败:', err);
+                }
+            };
+            
+            card.addEventListener('click', handler);
+            card._clickHandler = handler;
+        });
+        
+        // 绑定选择框事件
+        document.querySelectorAll('.mod-select-checkbox').forEach(checkbox => {
+            checkbox.removeEventListener('change', checkbox._changeHandler);
+            const handler = (e) => {
+                const modId = e.target.dataset.modId;
+                toggleModSelection(modId);
+            };
+            checkbox.addEventListener('change', handler);
+            checkbox._changeHandler = handler;
+        });
+        
+        // 绑定收藏按钮事件
+        document.querySelectorAll('.favorite-btn').forEach(btn => {
+            btn.removeEventListener('click', btn._favoriteHandler);
+            const handler = (e) => {
+                e.stopPropagation();
+                const modId = btn.closest('.mod-card').dataset.modId;
+                toggleFavorite(modId);
+            };
+            btn.addEventListener('click', handler);
+            btn._favoriteHandler = handler;
+        });
     }
 
-    function bindModCardEvents() {
-        document.querySelectorAll('#mod-list .mod-card').forEach(card => {
-            card.onclick = (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button') || 
-                    e.target.classList.contains('mod-select-checkbox') || 
-                    e.target.classList.contains('favorite-btn')) return;
-                const modId = card.dataset.modId;
-                const mod = modDataStore.get(modId);
-                if (mod) showModal(mod);
-            };
-        });
 
-        document.querySelectorAll('#mod-list .install').forEach(btn => {
-            btn.onclick = async (e) => {
+
+    function bindButtonEvents() {
+        document.querySelectorAll('.install').forEach(btn => {
+            btn.removeEventListener('click', btn._clickHandler);
+            const handler = async (e) => {
                 e.stopPropagation();
-                const modId = btn.dataset.modId;
                 const filename = btn.dataset.filename;
                 const name = btn.dataset.name || '未知模组';
+                if (!filename || filename.trim() === '') {
+                    showToast(`错误：模组"${name}"缺少文件名，请检查模组列表数据`, 'error');
+                    console.warn(`模组缺少文件名:`, {name, filename, dataset: btn.dataset});
+                    return;
+                }
                 btn.disabled = true;
                 btn.textContent = '安装中...';
                 try {
                     const res = await fetch('/api/install', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ filename, source: currentBrowseSource })
+                        body: JSON.stringify({ filename, source: currentBrowseSource, strict: document.getElementById('strict-mode').checked })
                     });
                     const data = await res.json();
                     if (res.ok) {
@@ -528,18 +593,25 @@
                         await loadInstalled(currentManageSource);
                     } else {
                         showToast(`❌ 安装失败: ${data.error}`, 'error');
+                        btn.disabled = false;
+                        btn.textContent = '安装';
                     }
                 } catch (err) {
                     showToast('网络错误', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '安装';
                 }
             };
+            btn.addEventListener('click', handler);
+            btn._clickHandler = handler;
         });
 
-        document.querySelectorAll('#mod-list .uninstall').forEach(btn => {
-            btn.onclick = async (e) => {
+        document.querySelectorAll('.uninstall').forEach(btn => {
+            btn.removeEventListener('click', btn._clickHandler);
+            const handler = async (e) => {
                 e.stopPropagation();
                 const name = btn.dataset.name;
-                if (!confirm(`确定要卸载 "${name}" 吗？`)) return;
+                if (!confirm(`确定要卸载模组 "${name}" 吗？`)) return;
                 btn.disabled = true;
                 btn.textContent = '卸载中...';
                 try {
@@ -548,86 +620,47 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name })
                     });
+                    const data = await res.json();
                     if (res.ok) {
                         showToast(`✅ ${name} 卸载成功！`, 'success');
                         await loadMods(currentBrowseSource);
                         await loadInstalled(currentManageSource);
                     } else {
-                        const data = await res.json();
                         showToast(`❌ 卸载失败: ${data.error}`, 'error');
+                        btn.disabled = false;
+                        btn.textContent = '卸载';
                     }
                 } catch (err) {
                     showToast('网络错误', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '卸载';
                 }
             };
-        });
-
-        document.querySelectorAll('#mod-list .update').forEach(btn => {
-            btn.onclick = async (e) => {
-                e.stopPropagation();
-                const name = btn.dataset.name;
-                if (!confirm(`确定要更新 "${name}" 吗？`)) return;
-                btn.disabled = true;
-                btn.textContent = '更新中...';
-                try {
-                    const res = await fetch('/api/update', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, source: currentBrowseSource })
-                    });
-                    if (res.ok) {
-                        showToast(`✅ ${name} 更新成功！`, 'success');
-                        await loadMods(currentBrowseSource);
-                        await loadInstalled(currentManageSource);
-                    } else {
-                        const data = await res.json();
-                        showToast(`❌ 更新失败: ${data.error}`, 'error');
-                    }
-                } catch (err) {
-                    showToast('网络错误', 'error');
-                }
-            };
-        });
-
-        document.querySelectorAll('#mod-list .favorite-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                const modId = btn.closest('.mod-card').dataset.modId;
-                toggleFavorite(modId);
-                renderMods(document.querySelectorAll('#mod-list .mod-card').length ? allMods.filter(m => {
-                    const search = document.getElementById('search').value.toLowerCase();
-                    const cat = document.getElementById('category').value;
-                    return (m.Name.toLowerCase().includes(search) || (m.Author && m.Author.toLowerCase().includes(search))) &&
-                           (cat === '' || m.Category === cat);
-                }) : []);
-            };
-        });
-
-        document.querySelectorAll('#mod-list .mod-select-checkbox').forEach(cb => {
-            cb.onchange = (e) => {
-                toggleModSelection(e.target.dataset.modId);
-            };
+            btn.addEventListener('click', handler);
+            btn._clickHandler = handler;
         });
     }
 
     // ==================== 模组包加载 ====================
     async function loadModpacks(source) {
-        if (source !== undefined) currentModpackSource = source;
         const container = document.getElementById('modpack-list');
         container.innerHTML = '<div class="loading">加载模组包列表中...</div>';
+        const strict = document.getElementById('strict-mode').checked;
         try {
-            const res = await fetch(`/api/modpacks?source=${currentModpackSource}`);
+            const res = await fetch(`/api/modpacks?source=${source}&strict=${strict}`);
             const data = await res.json();
             allModpacks = data.modpacks;
-            
+            if (data.active_source !== undefined) {
+                currentModpackSource = data.active_source;
+                const select = document.getElementById('modpack-source-select');
+                if (select && select.value != data.active_source) select.value = data.active_source;
+            }
             if (!allModpacks.length) {
                 container.innerHTML = '<div class="info">暂无模组包</div>';
                 return;
             }
-            
-            container.innerHTML = allModpacks.map((pack, idx) => {
-                return `
-                <div class="mod-card" data-pack-idx="${idx}">
+            container.innerHTML = allModpacks.map(pack => `
+                <div class="mod-card">
                     <div class="mod-image">
                         <img src="${pack.PictureLink || 'https://via.placeholder.com/200x200?text=No+Image'}" 
                              loading="lazy"
@@ -638,138 +671,85 @@
                         <h3>${escapeHtml(pack.Name)}</h3>
                         <p class="author">作者: ${escapeHtml(pack.Author || '未知')}</p>
                         <p class="version">版本: ${escapeHtml(pack.Version || '?')}</p>
-                        <p class="desc">${escapeHtml(pack.Description ? pack.Description.substring(0, 80) + (pack.Description.length > 80 ? '...' : '') : '暂无描述')}</p>
+                        <p class="desc">${escapeHtml(pack.Description ? pack.Description.substring(0, 100) + (pack.Description.length > 100 ? '...' : '') : '暂无描述')}</p>
                         <div class="mod-actions">
-                            <button class="install-modpack" data-pack-idx="${idx}">📦 安装模组包</button>
+                            <button class="install-modpack" data-pack='${escapeHtml(JSON.stringify(pack))}'>📦 安装模组包</button>
                         </div>
                     </div>
                 </div>
-                `;
-            }).join('');
+            `).join('');
 
-            bindModpackEvents();
+            document.querySelectorAll('.install-modpack').forEach(btn => {
+                btn.removeEventListener('click', btn._clickHandler);
+                const handler = async (e) => {
+                    e.stopPropagation();
+                    const pack = JSON.parse(btn.dataset.pack);
+                    if (!confirm(`确定要安装模组包 "${pack.Name}" 吗？\n这会安装包内包含的所有模组。`)) return;
+                    btn.disabled = true;
+                    btn.textContent = '安装中...';
+                    try {
+                        const res = await fetch('/api/install-modpack', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(pack)
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            // 显示详细结果弹窗
+                            showModpackResult(data.results);
+                            await loadMods(currentBrowseSource);
+                            await loadInstalled(currentManageSource);
+                        } else {
+                            showToast(`安装失败: ${data.error}`, 'error');
+                        }
+                    } catch (err) {
+                        showToast('网络错误', 'error');
+                    }
+                    btn.disabled = false;
+                    btn.textContent = '📦 安装模组包';
+                };
+                btn.addEventListener('click', handler);
+                btn._clickHandler = handler;
+            });
         } catch (err) {
             container.innerHTML = '<div class="error">加载模组包失败</div>';
             showToast('加载模组包失败', 'error');
         }
     }
 
-    function bindModpackEvents() {
-        document.querySelectorAll('.install-modpack').forEach(btn => {
-            btn.onclick = async (e) => {
-                e.stopPropagation();
-                const idx = parseInt(btn.dataset.packIdx);
-                const pack = allModpacks[idx];
-                if (!confirm(`确定要安装模组包 "${pack.Name}" 吗？\n这会安装包内包含的所有模组。`)) return;
-                btn.disabled = true;
-                btn.textContent = '安装中...';
-                try {
-                    const res = await fetch('/api/install-modpack', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(pack)
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        showModpackResult(data.results);
-                        await loadMods(currentBrowseSource);
-                        await loadInstalled();
-                    } else {
-                        showToast(`安装失败: ${data.error}`, 'error');
-                    }
-                } catch (err) {
-                    showToast('网络错误', 'error');
-                }
-                btn.disabled = false;
-                btn.textContent = '📦 安装模组包';
-            };
-        });
-    }
-
+    // 显示模组包安装结果弹窗
     function showModpackResult(results) {
         const modal = document.getElementById('modpack-result-modal');
         const listDiv = document.getElementById('modpack-result-list');
         listDiv.innerHTML = results.map(r => `<div style="margin-bottom: 4px;">${escapeHtml(r)}</div>`).join('');
         modal.style.display = 'block';
 
-        document.getElementById('close-result-btn').onclick = () => modal.style.display = 'none';
-        document.querySelector('.close-result').onclick = () => modal.style.display = 'none';
+        const closeModal = () => {
+            modal.style.display = 'none';
+        };
+        document.getElementById('close-result-btn').onclick = closeModal;
+        document.querySelector('.close-result').onclick = closeModal;
+        window.onclick = (event) => {
+            if (event.target === modal) closeModal();
+        };
     }
 
-    // ==================== 模组包导入导出 ====================
-    document.getElementById('import-modpack-btn').onclick = () => {
-        document.getElementById('modpack-file-input').click();
-    };
-    
-    document.getElementById('modpack-file-input').onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        const text = await file.text();
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
-        
-        if (lines.length === 0) {
-            showToast('文件为空或格式不正确', 'error');
-            return;
-        }
-        
-        if (!confirm(`将导入 ${lines.length} 个模组，是否继续？`)) return;
-        
-        showToast('正在导入模组包...', 'info');
-        
-        try {
-            const res = await fetch('/api/install-from-filenames', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filenames: lines, source: currentBrowseSource })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                showModpackResult(data.results);
-                await loadMods(currentBrowseSource);
-                await loadInstalled();
-            } else {
-                showToast(`导入失败: ${data.error}`, 'error');
-            }
-        } catch (err) {
-            showToast('导入失败', 'error');
-        }
-        e.target.value = '';
-    };
-    
-    document.getElementById('export-modpack-btn').onclick = async () => {
-        try {
-            const res = await fetch('/api/get-installed-filenames');
-            const data = await res.json();
-            
-            if (!data.filenames || data.filenames.length === 0) {
-                showToast('没有已安装的模组', 'warning');
-                return;
-            }
-            
-            const content = data.filenames.join('\n');
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'installed_mods_' + new Date().toISOString().slice(0, 10) + '.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            showToast(`已导出 ${data.filenames.length} 个模组`, 'success');
-        } catch (err) {
-            showToast('导出失败', 'error');
-        }
-    };
-
     // ==================== 已安装模组管理 ====================
-    async function loadInstalled(source) {
-        if (source !== undefined) currentManageSource = source;
+    async function loadInstalled(source = currentManageSource) {
         const container = document.getElementById('installed-list');
         container.innerHTML = '<div class="loading">加载中...</div>';
+        const strict = document.getElementById('strict-mode').checked;
         try {
-            const res = await fetch(`/api/mods?source=${currentManageSource}`);
+            const res = await fetch(`/api/mods?source=${source}&strict=${strict}`);
             const data = await res.json();
+            
+            if (data.active_source !== undefined) {
+                currentManageSource = data.active_source;
+                const manageSelect = document.getElementById('manage-source-select');
+                if (manageSelect && manageSelect.value != data.active_source) {
+                    manageSelect.value = data.active_source;
+                }
+            }
             
             const installedMods = data.mods.filter(mod => mod.is_installed);
             if (!installedMods.length) {
@@ -779,15 +759,8 @@
             
             container.innerHTML = installedMods.map(mod => {
                 const needUpdate = mod.installed_version !== mod.Version && mod.Version;
-                const modId = `inst-${modDataCounter++}`;
-                modDataStore.set(modId, { ...mod, modId });
-                const favKey = `${mod.Name}-${mod.FileName}-${currentManageSource}`;
-                
                 return `
-                    <div class="mod-card" data-mod-id="${modId}">
-                        <div class="favorite-btn" style="position: absolute; top: 8px; right: 8px; z-index: 10; cursor: pointer; font-size: 18px;" title="收藏">
-                            ${favorites.has(favKey) ? '★' : '☆'}
-                        </div>
+                    <div class="mod-card">
                         <div class="mod-image">
                             <img src="${mod.PictureLink || 'https://via.placeholder.com/200x200?text=No+Image'}" 
                                  loading="lazy"
@@ -798,38 +771,30 @@
                             <h3>${escapeHtml(mod.Name)}</h3>
                             <p class="author">作者: ${escapeHtml(mod.Author || '未知')}</p>
                             <p class="version">已安装: ${escapeHtml(mod.installed_version || '?')} | 最新: ${escapeHtml(mod.Version || '?')}</p>
-                            <p class="desc">${escapeHtml(mod.Description ? mod.Description.substring(0, 80) + (mod.Description.length > 80 ? '...' : '') : '暂无描述')}</p>
+                            <p class="desc">${escapeHtml(mod.Description ? mod.Description.substring(0, 100) + (mod.Description.length > 100 ? '...' : '') : '暂无描述')}</p>
                             <div class="mod-actions">
-                                <button class="uninstall" data-mod-id="${modId}" data-name="${escapeHtml(mod.Name)}">卸载</button>
-                                <button class="update" data-mod-id="${modId}" data-name="${escapeHtml(mod.Name)}" ${needUpdate ? '' : 'disabled'}>${needUpdate ? '更新' : '已是最新'}</button>
+                                <button class="uninstall-manage" data-name="${escapeHtml(mod.Name)}">卸载</button>
+                                <button class="update-manage" data-name="${escapeHtml(mod.Name)}" ${needUpdate ? '' : 'disabled'}>${needUpdate ? '更新' : '已是最新'}</button>
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
             
-            bindInstalledCardEvents();
+            bindManageButtons();
         } catch (err) {
             console.error('加载已安装模组失败:', err);
             container.innerHTML = '<div class="error">加载失败</div>';
             showToast('加载已安装模组失败', 'error');
         }
     }
-    
-    function bindInstalledCardEvents() {
-        document.querySelectorAll('#installed-list .mod-card').forEach(card => {
-            card.onclick = (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.classList.contains('favorite-btn')) return;
-                const mod = modDataStore.get(card.dataset.modId);
-                if (mod) showModal(mod);
-            };
-        });
 
-        document.querySelectorAll('#installed-list .uninstall').forEach(btn => {
-            btn.onclick = async (e) => {
-                e.stopPropagation();
+    function bindManageButtons() {
+        document.querySelectorAll('.uninstall-manage').forEach(btn => {
+            btn.removeEventListener('click', btn._clickHandler);
+            const handler = async (e) => {
                 const name = btn.dataset.name;
-                if (!confirm(`确定要卸载 "${name}" 吗？`)) return;
+                if (!confirm(`确定要卸载模组 "${name}" 吗？`)) return;
                 btn.disabled = true;
                 btn.textContent = '卸载中...';
                 try {
@@ -838,59 +803,63 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name })
                     });
+                    const data = await res.json();
                     if (res.ok) {
                         showToast(`✅ ${name} 卸载成功！`, 'success');
                         await loadMods(currentBrowseSource);
-                        await loadInstalled();
+                        await loadInstalled(currentManageSource);
                     } else {
-                        const data = await res.json();
                         showToast(`❌ 卸载失败: ${data.error}`, 'error');
+                        btn.disabled = false;
+                        btn.textContent = '卸载';
                     }
                 } catch (err) {
                     showToast('网络错误', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '卸载';
                 }
             };
+            btn.addEventListener('click', handler);
+            btn._clickHandler = handler;
         });
-
-        document.querySelectorAll('#installed-list .update').forEach(btn => {
-            btn.onclick = async (e) => {
-                e.stopPropagation();
+        
+        document.querySelectorAll('.update-manage').forEach(btn => {
+            btn.removeEventListener('click', btn._clickHandler);
+            const handler = async (e) => {
                 const name = btn.dataset.name;
-                if (!confirm(`确定要更新 "${name}" 吗？`)) return;
+                if (!confirm(`确定要更新模组 "${name}" 吗？`)) return;
                 btn.disabled = true;
                 btn.textContent = '更新中...';
                 try {
                     const res = await fetch('/api/update', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, source: currentManageSource })
+                        body: JSON.stringify({ name, source: currentManageSource, strict: document.getElementById('strict-mode').checked })
                     });
+                    const data = await res.json();
                     if (res.ok) {
                         showToast(`✅ ${name} 更新成功！`, 'success');
                         await loadMods(currentBrowseSource);
-                        await loadInstalled();
+                        await loadInstalled(currentManageSource);
                     } else {
-                        const data = await res.json();
                         showToast(`❌ 更新失败: ${data.error}`, 'error');
+                        btn.disabled = false;
+                        btn.textContent = '更新';
                     }
                 } catch (err) {
                     showToast('网络错误', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '更新';
                 }
             };
-        });
-
-        document.querySelectorAll('#installed-list .favorite-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                const modId = btn.closest('.mod-card').dataset.modId;
-                toggleFavorite(modId);
-                loadInstalled();
-            };
+            btn.addEventListener('click', handler);
+            btn._clickHandler = handler;
         });
     }
 
     // ==================== 模态框 ====================
     const modal = document.getElementById('mod-modal');
+    const closeBtn = document.querySelector('.close');
     let currentModalMod = null;
 
     function showModal(mod) {
@@ -898,17 +867,20 @@
         document.getElementById('modal-picture').src = mod.PictureLink || 'https://via.placeholder.com/400x200?text=No+Image';
         document.getElementById('modal-title').textContent = mod.Name;
         
-        const t = window.translations || {};
-        document.getElementById('modal-author').textContent = mod.Author || t.unknown || '未知';
-        document.getElementById('modal-version').textContent = mod.Version || '?';
-        document.getElementById('modal-category').textContent = mod.Category || '未分类';
-        document.getElementById('modal-date').textContent = mod.Date || '未知';
-        document.getElementById('modal-dependency').textContent = mod.Dependency || '无';
-        document.getElementById('modal-description').innerHTML = (mod.Description || t.no_description || '暂无描述').replace(/\n/g, '<br>');
+        // 使用翻译文本
+        const unknownText = window.translations && window.translations.unknown ? window.translations.unknown : '未知';
+        const uncategorizedText = window.translations && window.translations.uncategorized ? window.translations.uncategorized : '未分类';
+        const noneText = window.translations && window.translations.none ? window.translations.none : '无';
+        const noDescText = window.translations && window.translations.no_description ? window.translations.no_description : '暂无描述';
         
+        document.getElementById('modal-author').textContent = mod.Author || unknownText;
+        document.getElementById('modal-version').textContent = mod.Version || '?';
+        document.getElementById('modal-category').textContent = mod.Category || uncategorizedText;
+        document.getElementById('modal-date').textContent = mod.Date || unknownText;
+        document.getElementById('modal-dependency').textContent = mod.Dependency || noneText;
+        document.getElementById('modal-description').innerHTML = (mod.Description || noDescText).replace(/\n/g, '<br>');
         const installBtn = document.getElementById('modal-install-btn');
         const uninstallBtn = document.getElementById('modal-uninstall-btn');
-        
         if (mod.is_installed) {
             installBtn.style.display = 'none';
             uninstallBtn.style.display = 'inline-block';
@@ -918,132 +890,6 @@
             uninstallBtn.style.display = 'none';
             installBtn.dataset.filename = mod.FileName;
         }
-        modal.style.display = 'block';
-    }
-
-    document.querySelector('.close').onclick = () => modal.style.display = 'none';
-    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
-
-    document.getElementById('modal-install-btn').onclick = async () => {
-        if (!currentModalMod?.FileName) return;
-        const btn = document.getElementById('modal-install-btn');
-        btn.disabled = true;
-        btn.textContent = '安装中...';
-        try {
-            const res = await fetch('/api/install', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename: currentModalMod.FileName, source: currentBrowseSource })
-            });
-            if (res.ok) {
-                showToast('安装成功！', 'success');
-                modal.style.display = 'none';
-                await loadMods(currentBrowseSource);
-                await loadInstalled();
-            } else {
-                const data = await res.json();
-                showToast(`安装失败: ${data.error}`, 'error');
-            }
-        } catch (err) {
-            showToast('网络错误', 'error');
-        }
-        btn.disabled = false;
-        btn.textContent = window.translations?.install || '安装';
-    };
-
-    document.getElementById('modal-uninstall-btn').onclick = async () => {
-        if (!currentModalMod?.Name) return;
-        if (!confirm(`确定要卸载 "${currentModalMod.Name}" 吗？`)) return;
-        const btn = document.getElementById('modal-uninstall-btn');
-        btn.disabled = true;
-        btn.textContent = '卸载中...';
-        try {
-            const res = await fetch('/api/uninstall', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: currentModalMod.Name })
-            });
-            if (res.ok) {
-                showToast('卸载成功！', 'success');
-                modal.style.display = 'none';
-                await loadMods(currentBrowseSource);
-                await loadInstalled();
-            } else {
-                const data = await res.json();
-                showToast(`卸载失败: ${data.error}`, 'error');
-            }
-        } catch (err) {
-            showToast('网络错误', 'error');
-        }
-        btn.disabled = false;
-        btn.textContent = window.translations?.uninstall || '卸载';
-    };
-
-    // ==================== 视图切换 ====================
-    document.getElementById('grid-view-btn').onclick = () => {
-        document.getElementById('mod-list').className = 'mod-grid';
-        document.getElementById('grid-view-btn').classList.add('active');
-        document.getElementById('list-view-btn').classList.remove('active');
-    };
-    document.getElementById('list-view-btn').onclick = () => {
-        document.getElementById('mod-list').className = 'mod-list';
-        document.getElementById('list-view-btn').classList.add('active');
-        document.getElementById('grid-view-btn').classList.remove('active');
-    };
-
-    // ==================== 标签页切换 ====================
-    const tabs = {
-        browse: document.getElementById('browse-tab'),
-        modpacks: document.getElementById('modpacks-tab'),
-        manage: document.getElementById('manage-tab'),
-        settings: document.getElementById('settings-tab'),
-        about: document.getElementById('about-tab'),
-        favorites: document.getElementById('favorites-tab')
-    };
-    
-    document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.onclick = () => {
-            const target = btn.dataset.tab;
-            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            Object.values(tabs).forEach(t => t.classList.remove('active'));
-            tabs[target].classList.add('active');
-            if (target === 'manage') loadInstalled();
-            if (target === 'modpacks') loadModpacks();
-            if (target === 'about') loadLicenseContent();
-            if (target === 'favorites') loadFavorites();
-        };
-    });
-
-    // ==================== 源切换事件 ====================
-    document.getElementById('source-select').onchange = (e) => {
-        currentBrowseSource = parseInt(e.target.value);
-        loadMods(currentBrowseSource);
-    };
-    document.getElementById('modpack-source-select').onchange = (e) => {
-        currentModpackSource = parseInt(e.target.value);
-        loadModpacks(currentModpackSource);
-    };
-    document.getElementById('manage-source-select').onchange = (e) => {
-        currentManageSource = parseInt(e.target.value);
-        loadInstalled(currentManageSource);
-    };
-    document.getElementById('favorites-source-select').onchange = (e) => {
-        currentBrowseSource = parseInt(e.target.value);
-        loadFavorites();
-    };
-
-    // ==================== 批量操作按钮事件 ====================
-    document.getElementById('multi-select-btn').onclick = toggleMultiSelect;
-    document.getElementById('select-all-btn')?.addEventListener('click', selectAll);
-    document.getElementById('reverse-select-btn')?.addEventListener('click', reverseSelect);
-    document.getElementById('batch-install-btn').onclick = () => executeBatchOperation('install');
-    document.getElementById('batch-uninstall-btn').onclick = () => executeBatchOperation('uninstall');
-    document.getElementById('batch-update-btn').onclick = () => executeBatchOperation('update');
-
-    // ==================== 搜索和筛选 ====================
-    document.getElementById('search').oninput = filterMods;
-    document.getElementById('category').onchange = filterMods;
         modal.style.display = 'block';
     }
 
@@ -1142,8 +988,7 @@
         modpacks: document.getElementById('modpacks-tab'),
         manage: document.getElementById('manage-tab'),
         settings: document.getElementById('settings-tab'),
-        about: document.getElementById('about-tab'),
-        favorites: document.getElementById('favorites-tab')
+        about: document.getElementById('about-tab')
     };
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1155,7 +1000,6 @@
             if (target === 'manage') loadInstalled(currentManageSource);
             if (target === 'modpacks') loadModpacks(currentModpackSource);
             if (target === 'about') loadLicenseContent();
-            if (target === 'favorites') loadFavorites();
         });
     });
 
@@ -1215,176 +1059,185 @@
     // ==================== 多选功能 ====================
     function toggleMultiSelect() {
         isMultiSelectMode = !isMultiSelectMode;
-        if (!isMultiSelectMode) selectedMods.clear();
+        selectedMods.clear();
         updateMultiSelectUI();
-        showToast(isMultiSelectMode ? '已进入多选模式' : '已退出多选模式', 'info');
-    }
-    
-    function selectAll() {
-        document.querySelectorAll('#mod-list .mod-card').forEach(card => {
-            const modId = card.dataset.modId;
-            if (modId && modId.startsWith('mod-')) {
-                selectedMods.add(modId);
-            }
-        });
-        updateMultiSelectUI();
-        showToast(`已选中 ${selectedMods.size} 个模组`, 'info');
-    }
-    
-    function reverseSelect() {
-        document.querySelectorAll('#mod-list .mod-card').forEach(card => {
-            const modId = card.dataset.modId;
-            if (modId && modId.startsWith('mod-')) {
-                if (selectedMods.has(modId)) {
-                    selectedMods.delete(modId);
-                } else {
-                    selectedMods.add(modId);
-                }
-            }
-        });
-        updateMultiSelectUI();
-        showToast(`已选中 ${selectedMods.size} 个模组`, 'info');
+        
+        if (isMultiSelectMode) {
+            showToast('已进入多选模式，点击模组卡片进行选择', 'info');
+        } else {
+            showToast('已退出多选模式', 'info');
+        }
     }
     
     function updateMultiSelectUI() {
-        document.querySelectorAll('#mod-list .mod-card').forEach(card => {
+        const cards = document.querySelectorAll('.mod-card');
+        cards.forEach(card => {
             const checkbox = card.querySelector('.mod-checkbox');
-            if (checkbox) checkbox.style.display = isMultiSelectMode ? 'block' : 'none';
-            const cb = checkbox?.querySelector('input');
-            if (cb) cb.checked = selectedMods.has(card.dataset.modId);
+            if (checkbox) {
+                checkbox.style.display = isMultiSelectMode ? 'block' : 'none';
+            }
         });
         
-        const hasSelection = selectedMods.size > 0;
-        document.getElementById('batch-install-btn').disabled = !hasSelection;
-        document.getElementById('batch-uninstall-btn').disabled = !hasSelection;
-        document.getElementById('batch-update-btn').disabled = !hasSelection;
+        // 更新批量操作按钮状态
+        const batchInstallBtn = document.getElementById('batch-install-btn');
+        const batchUninstallBtn = document.getElementById('batch-uninstall-btn');
+        const batchUpdateBtn = document.getElementById('batch-update-btn');
+        
+        if (batchInstallBtn) {
+            batchInstallBtn.disabled = !isMultiSelectMode || selectedMods.size === 0;
+        }
+        if (batchUninstallBtn) {
+            batchUninstallBtn.disabled = !isMultiSelectMode || selectedMods.size === 0;
+        }
+        if (batchUpdateBtn) {
+            batchUpdateBtn.disabled = !isMultiSelectMode || selectedMods.size === 0;
+        }
     }
     
     function toggleModSelection(modId) {
         if (!isMultiSelectMode) return;
+        
         if (selectedMods.has(modId)) {
             selectedMods.delete(modId);
         } else {
             selectedMods.add(modId);
         }
+        
         updateMultiSelectUI();
     }
     
-    async function executeBatchOperation(operation) {
+    function executeBatchOperation(operation) {
         if (selectedMods.size === 0) {
             showToast('请先选择要操作的模组', 'warning');
             return;
         }
         
-        const mods = Array.from(selectedMods).map(id => modDataStore.get(id)).filter(m => m);
+        const modIds = Array.from(selectedMods);
+        const mods = modIds.map(id => modDataStore.get(id));
         
         if (operation === 'install') {
-            for (const mod of mods) {
-                if (!mod?.FileName) continue;
-                try {
-                    const res = await fetch('/api/install', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ filename: mod.FileName, source: currentBrowseSource })
-                    });
-                    if (res.ok) showToast(`✅ ${mod.Name} 安装成功`, 'success');
-                    else {
-                        const data = await res.json();
-                        showToast(`❌ ${mod.Name}: ${data.error}`, 'error');
-                    }
-                } catch (err) {
-                    showToast(`❌ ${mod.Name} 异常`, 'error');
-                }
-            }
+            executeBatchInstall(mods);
         } else if (operation === 'uninstall') {
-            for (const mod of mods) {
-                if (!mod?.Name) continue;
-                try {
-                    const res = await fetch('/api/uninstall', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: mod.Name })
-                    });
-                    if (res.ok) showToast(`✅ ${mod.Name} 卸载成功`, 'success');
-                    else {
-                        const data = await res.json();
-                        showToast(`❌ ${mod.Name}: ${data.error}`, 'error');
-                    }
-                } catch (err) {
-                    showToast(`❌ ${mod.Name} 异常`, 'error');
-                }
-            }
+            executeBatchUninstall(mods);
         } else if (operation === 'update') {
-            for (const mod of mods) {
-                if (!mod?.Name) continue;
-                try {
-                    const res = await fetch('/api/update', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: mod.Name, source: currentBrowseSource })
-                    });
-                    if (res.ok) showToast(`✅ ${mod.Name} 更新成功`, 'success');
-                    else {
-                        const data = await res.json();
-                        showToast(`❌ ${mod.Name}: ${data.error}`, 'error');
-                    }
-                } catch (err) {
-                    showToast(`❌ ${mod.Name} 异常`, 'error');
+            executeBatchUpdate(mods);
+        }
+    }
+    
+    async function executeBatchInstall(mods) {
+        showToast(`正在批量安装 ${mods.length} 个模组...`, 'info');
+        
+        for (const mod of mods) {
+            if (!mod || !mod.FileName) continue;
+            
+            try {
+                const res = await fetch('/api/install', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: mod.FileName, source: currentBrowseSource, strict: document.getElementById('strict-mode').checked })
+                });
+                
+                if (res.ok) {
+                    showToast(`✅ ${mod.Name} 安装成功！`, 'success');
+                    // 从选中列表中移除已安装的模组
+                    selectedMods.delete(mod.modId);
+                } else {
+                    const data = await res.json();
+                    showToast(`❌ ${mod.Name} 安装失败: ${data.error}`, 'error');
                 }
+            } catch (err) {
+                showToast(`❌ ${mod.Name} 安装异常: ${err.message}`, 'error');
             }
         }
         
-        selectedMods.clear();
-        isMultiSelectMode = false;
+        // 重新加载模组列表
         await loadMods(currentBrowseSource);
-        await loadInstalled();
+        updateMultiSelectUI();
+    }
+    
+    async function executeBatchUninstall(mods) {
+        showToast(`正在批量卸载 ${mods.length} 个模组...`, 'info');
+        
+        for (const mod of mods) {
+            if (!mod || !mod.Name) continue;
+            
+            try {
+                const res = await fetch('/api/uninstall', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: mod.Name })
+                });
+                
+                if (res.ok) {
+                    showToast(`✅ ${mod.Name} 卸载成功！`, 'success');
+                    // 从选中列表中移除已卸载的模组
+                    selectedMods.delete(mod.modId);
+                } else {
+                    const data = await res.json();
+                    showToast(`❌ ${mod.Name} 卸载失败: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                showToast(`❌ ${mod.Name} 卸载异常: ${err.message}`, 'error');
+            }
+        }
+        
+        // 重新加载模组列表
+        await loadMods(currentBrowseSource);
+        await loadInstalled(currentManageSource);
+        updateMultiSelectUI();
+    }
+    
+    async function executeBatchUpdate(mods) {
+        showToast(`正在批量更新 ${mods.length} 个模组...`, 'info');
+        
+        for (const mod of mods) {
+            if (!mod || !mod.Name) continue;
+            
+            try {
+                // 先卸载
+                const uninstallRes = await fetch('/api/uninstall', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: mod.Name })
+                });
+                
+                if (uninstallRes.ok) {
+                    // 然后安装最新版本
+                    const installRes = await fetch('/api/install', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ filename: mod.FileName, source: currentBrowseSource, strict: document.getElementById('strict-mode').checked })
+                    });
+                    
+                    if (installRes.ok) {
+                        showToast(`✅ ${mod.Name} 更新成功！`, 'success');
+                        // 从选中列表中移除已更新的模组
+                        selectedMods.delete(mod.modId);
+                    } else {
+                        const data = await installRes.json();
+                        showToast(`❌ ${mod.Name} 更新失败: ${data.error}`, 'error');
+                    }
+                } else {
+                    const data = await uninstallRes.json();
+                    showToast(`❌ ${mod.Name} 更新失败（卸载阶段）: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                showToast(`❌ ${mod.Name} 更新异常: ${err.message}`, 'error');
+            }
+        }
+        
+        // 重新加载模组列表
+        await loadMods(currentBrowseSource);
+        await loadInstalled(currentManageSource);
+        updateMultiSelectUI();
     }
     
     // ==================== 收藏功能 ====================
-    async function loadFavoritesFromServer() {
-        try {
-            const res = await fetch('/api/favorites');
-            if (res.ok) {
-                const data = await res.json();
-                favoritesData.clear();
-                favorites.clear();
-                data.favorites.forEach(mod => {
-                    const key = `${mod.Name}-${mod.FileName}-${mod.sourceIndex}`;
-                    favorites.add(key);
-                    favoritesData.set(key, {
-                        mod: mod,
-                        sourceIndex: mod.sourceIndex,
-                        sourceName: sources[mod.sourceIndex]?.name || '未知源'
-                    });
-                });
-            }
-        } catch (err) {
-            console.error('加载收藏失败:', err);
-        }
-    }
-    
-    async function saveFavoritesToServer() {
-        try {
-            const favList = Array.from(favoritesData.values()).map(data => ({
-                ...data.mod,
-                sourceIndex: data.sourceIndex
-            }));
-            await fetch('/api/favorites', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ favorites: favList })
-            });
-        } catch (err) {
-            console.error('保存收藏失败:', err);
-        }
-    }
-    
     function toggleFavorite(modId) {
         const mod = modDataStore.get(modId);
         if (!mod) return;
         
-        const sourceIdx = mod.sourceIndex !== undefined ? mod.sourceIndex : currentBrowseSource;
-        const favoriteKey = `${mod.Name}-${mod.FileName}-${sourceIdx}`;
+        const favoriteKey = `${mod.Name}-${mod.FileName}-${currentBrowseSource}`;
         
         if (favorites.has(favoriteKey)) {
             favorites.delete(favoriteKey);
@@ -1393,13 +1246,41 @@
         } else {
             favorites.add(favoriteKey);
             favoritesData.set(favoriteKey, {
-                mod: { ...mod },
-                sourceIndex: sourceIdx,
-                sourceName: sources[sourceIdx]?.name || '未知源'
+                mod: mod,
+                sourceIndex: currentBrowseSource,
+                sourceName: MODLIST_SOURCES[currentBrowseSource].name
             });
             showToast(`已收藏 ${mod.Name}`, 'success');
         }
-        saveFavoritesToServer();
+        
+        // 更新收藏按钮状态
+        updateFavoriteButton(modId);
+    }
+    
+    // 收藏页面源选择器事件
+    document.getElementById('favorites-source-select').addEventListener('change', async (e) => {
+        const source = parseInt(e.target.value);
+        currentBrowseSource = source;
+        localStorage.setItem('selected_browse_source', source);
+        await loadFavorites();
+    });
+    
+    function updateFavoriteButton(modId) {
+        const mod = modDataStore.get(modId);
+        if (!mod) return;
+        
+        const favoriteKey = `${mod.Name}-${mod.FileName}-${currentBrowseSource}`;
+        const favoriteBtn = document.querySelector(`[data-mod-id="${modId}"] .favorite-btn`);
+        
+        if (favoriteBtn) {
+            if (favorites.has(favoriteKey)) {
+                favoriteBtn.classList.add('favorited');
+                favoriteBtn.innerHTML = '★';
+            } else {
+                favoriteBtn.classList.remove('favorited');
+                favoriteBtn.innerHTML = '☆';
+            }
+        }
     }
     
     async function loadFavorites() {
@@ -1409,23 +1290,20 @@
         container.innerHTML = '<div class="loading">加载收藏的模组...</div>';
         
         try {
-            await loadFavoritesFromServer();
-            const favList = Array.from(favoritesData.values());
+            // 获取所有收藏的模组数据
+            const favoriteMods = Array.from(favoritesData.values()).map(data => data.mod);
             
-            if (favList.length === 0) {
+            if (favoriteMods.length === 0) {
                 container.innerHTML = '<div class="info">暂无收藏的模组</div>';
                 return;
             }
             
-            container.innerHTML = favList.map(data => {
-                const mod = data.mod;
-                const sourceIdx = data.sourceIndex;
-                const modId = `fav-${modDataCounter++}`;
-                modDataStore.set(modId, { ...mod, modId, sourceIndex: sourceIdx });
+            container.innerHTML = favoriteMods.map(mod => {
+                const favoriteKey = `${mod.Name}-${mod.FileName}-${currentBrowseSource}`;
+                const isFavorited = favorites.has(favoriteKey);
                 
                 return `
-                <div class="mod-card" data-mod-id="${modId}">
-                    <div class="favorite-btn favorited" style="position: absolute; top: 8px; right: 8px; z-index: 10; cursor: pointer; font-size: 18px;" title="取消收藏">★</div>
+                <div class="mod-card" data-mod-id="${modDataCounter++}">
                     <div class="mod-image">
                         <img src="${mod.PictureLink || 'https://via.placeholder.com/200x200?text=No+Image'}" 
                              loading="lazy"
@@ -1434,199 +1312,340 @@
                     </div>
                     <div class="mod-info">
                         <h3>${escapeHtml(mod.Name)}</h3>
-                        <p class="author">${window.translations?.author || '作者:'} ${escapeHtml(mod.Author || (window.translations?.unknown || '未知'))} (${escapeHtml(data.sourceName || '未知源')})</p>
-                        <p class="version">${window.translations?.version || '版本:'} ${escapeHtml(mod.Version || '?')}</p>
-                        <p class="desc">${escapeHtml(mod.Description ? mod.Description.substring(0, 80) + (mod.Description.length > 80 ? '...' : '') : (window.translations?.no_description || '暂无描述'))}</p>
+                        <p class="author">${window.translations && window.translations.author ? window.translations.author : '作者:'} ${escapeHtml(mod.Author || (window.translations && window.translations.unknown ? window.translations.unknown : '未知'))}</p>
+                        <p class="version">${window.translations && window.translations.version ? window.translations.version : '版本:'} ${escapeHtml(mod.Version || '?')}</p>
+                        <p class="desc">${escapeHtml(mod.Description ? mod.Description.substring(0, 100) + (mod.Description.length > 100 ? '...' : '') : (window.translations && window.translations.no_description ? window.translations.no_description : '暂无描述'))}</p>
                         <div class="mod-actions">
-                            <button class="install" data-mod-id="${modId}" data-filename="${escapeHtml(mod.FileName || '')}" data-name="${escapeHtml(mod.Name)}" data-source="${sourceIdx}">${window.translations?.install || '安装'}</button>
-                            <button class="uninstall" data-mod-id="${modId}" data-name="${escapeHtml(mod.Name)}">${window.translations?.uninstall || '卸载'}</button>
+                            ${mod.is_installed ? 
+                                `<button class="uninstall" data-name="${escapeHtml(mod.Name || (window.translations && window.translations.unknown ? window.translations.unknown + '模组' : '未知模组'))}" data-filename="${escapeHtml(mod.FileName || '')}">${window.translations && window.translations.uninstall ? window.translations.uninstall : '卸载'}</button>` : 
+                                (mod.FileName && mod.FileName.trim() !== '' ?
+                                    `<button class="install" data-filename="${escapeHtml(mod.FileName)}" data-name="${escapeHtml(mod.Name || (window.translations && window.translations.unknown ? window.translations.unknown + '模组' : '未知模组'))}">${window.translations && window.translations.install ? window.translations.install : '安装'}</button>` :
+                                    `<button class="install disabled" data-name="${escapeHtml(mod.Name || (window.translations && window.translations.unknown ? window.translations.unknown + '模组' : '未知模组'))}" title="${window.translations && window.translations.error_no_filename ? window.translations.error_no_filename : '此模组缺少文件名，无法安装'}" disabled>${window.translations && window.translations.cannot_install ? window.translations.cannot_install : '无法安装'}</button>`
+                                )
+                            }
                         </div>
                     </div>
                 </div>
                 `;
             }).join('');
             
-            bindFavoriteCardEvents();
+            // 绑定收藏页面的事件
+            bindFavoritesEvents();
+            
         } catch (err) {
             console.error('加载收藏失败:', err);
             container.innerHTML = '<div class="error">加载收藏失败</div>';
         }
     }
     
-    function bindFavoriteCardEvents() {
-        document.querySelectorAll('#favorites-list .mod-card').forEach(card => {
-            card.onclick = (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.classList.contains('favorite-btn')) return;
-                const mod = modDataStore.get(card.dataset.modId);
-                if (mod) showModal(mod);
-            };
-        });
-
-        document.querySelectorAll('#favorites-list .install').forEach(btn => {
-            btn.onclick = async (e) => {
-                e.stopPropagation();
-                const modId = btn.dataset.modId;
-                const mod = modDataStore.get(modId);
-                if (!mod) return;
-                btn.disabled = true;
-                btn.textContent = '安装中...';
-                try {
-                    const res = await fetch('/api/install', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ filename: mod.FileName, source: mod.sourceIndex || 0 })
-                    });
-                    if (res.ok) {
-                        showToast(`✅ ${mod.Name} 安装成功！`, 'success');
-                        await loadMods(currentBrowseSource);
-                        await loadInstalled();
-                    } else {
-                        const data = await res.json();
-                        showToast(`❌ 安装失败: ${data.error}`, 'error');
-                    }
-                } catch (err) {
-                    showToast('网络错误', 'error');
-                }
-                loadFavorites();
-            };
-        });
-
-        document.querySelectorAll('#favorites-list .uninstall').forEach(btn => {
-            btn.onclick = async (e) => {
-                e.stopPropagation();
-                const name = btn.dataset.name;
-                if (!confirm(`确定要卸载 "${name}" 吗？`)) return;
-                btn.disabled = true;
-                btn.textContent = '卸载中...';
-                try {
-                    const res = await fetch('/api/uninstall', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name })
-                    });
-                    if (res.ok) {
-                        showToast(`✅ ${name} 卸载成功！`, 'success');
-                        await loadMods(currentBrowseSource);
-                        await loadInstalled();
-                    } else {
-                        const data = await res.json();
-                        showToast(`❌ 卸载失败: ${data.error}`, 'error');
-                    }
-                } catch (err) {
-                    showToast('网络错误', 'error');
-                }
-                loadFavorites();
-            };
-        });
-
-        document.querySelectorAll('#favorites-list .favorite-btn').forEach(btn => {
-            btn.onclick = (e) => {
+    function bindFavoritesEvents() {
+        // 绑定收藏页面的安装/卸载按钮
+        bindButtonEvents();
+        
+        // 绑定收藏按钮（如果存在）
+        document.querySelectorAll('.favorite-btn').forEach(btn => {
+            btn.removeEventListener('click', btn._favoriteHandler);
+            const handler = (e) => {
                 e.stopPropagation();
                 const modId = btn.closest('.mod-card').dataset.modId;
                 toggleFavorite(modId);
-                loadFavorites();
             };
+            btn.addEventListener('click', handler);
+            btn._favoriteHandler = handler;
         });
     }
 
-    // ==================== 许可证 ====================
+    // 加载许可证内容
     async function loadLicenseContent() {
         const container = document.getElementById('license-content');
         try {
             const response = await fetch('/api/license');
             if (response.ok) {
-                container.innerHTML = `<pre>${escapeHtml(await response.text())}</pre>`;
+                const text = await response.text();
+                container.innerHTML = `<pre>${escapeHtml(text)}</pre>`;
             } else {
                 container.innerHTML = '<p class="error">无法加载许可证文件</p>';
             }
-        } catch (e) {
+        } catch (error) {
+            console.error('加载许可证失败:', error);
             container.innerHTML = '<p class="error">加载许可证失败</p>';
         }
     }
 
-    // ==================== 设置 ====================
+    // 初始化设置
     function initSettings() {
-        document.getElementById('bg-color').value = localStorage.getItem('bg_color') || '#141414';
-        document.getElementById('text-color').value = localStorage.getItem('text_color') || '#eef';
-        document.getElementById('exe-path').value = localStorage.getItem('exe_path') || '';
-        applyTheme(document.getElementById('bg-color').value, document.getElementById('text-color').value);
+        // 加载保存的设置
+        const savedBgColor = localStorage.getItem('bg_color') || '#141414';
+        const savedTextColor = localStorage.getItem('text_color') || '#eef';
+        let savedLanguage = localStorage.getItem('language') || 'auto';
+        const savedExePath = localStorage.getItem('exe_path') || '';
+        const savedStrictMode = localStorage.getItem('strict_mode') === 'true';
+        
+        // 获取当前URL语言参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLang = urlParams.get('lang');
+        
+        // 如果URL中有语言参数，更新保存的语言设置
+        if (urlLang && ['zh', 'en'].includes(urlLang)) {
+            savedLanguage = urlLang;
+            localStorage.setItem('language', savedLanguage);
+        }
+        
+        // 应用设置到UI
+        document.getElementById('bg-color').value = savedBgColor;
+        document.getElementById('text-color').value = savedTextColor;
+        document.getElementById('language-select').value = savedLanguage;
+        document.getElementById('exe-path').value = savedExePath;
+        document.getElementById('strict-mode').checked = savedStrictMode;
+        
+        // 应用当前主题
+        applyTheme(savedBgColor, savedTextColor);
+        
+        console.log('设置初始化完成，语言:', savedLanguage, 'URL参数:', urlLang);
     }
 
+    // 应用主题
     function applyTheme(bgColor, textColor) {
+        // 设置CSS变量
         document.documentElement.style.setProperty('--bg-color', bgColor);
         document.documentElement.style.setProperty('--text-color', textColor);
+        
+        // 主要文本元素使用CSS变量
         document.body.style.backgroundColor = bgColor;
         document.body.style.color = textColor;
+        
+        // 更新其他可能硬编码颜色的元素
+        const elementsToUpdate = [
+            '.mod-card', '.mod-info h3', '.author', '.version', '.desc',
+            '.tab-button', '.source-selector label', '.search-input',
+            '.category-select', '.task-item', '.task-name', '.modal-content',
+            '.settings-section', '.about-section', '.about-section li',
+            '.license-content', '.setting-item label', 'h1', 'h2', 'h3', 'p'
+        ];
+        
+        elementsToUpdate.forEach(selector => {
+            document.querySelectorAll(selector).forEach(el => {
+                if (!el.classList.contains('install') && 
+                    !el.classList.contains('uninstall') && 
+                    !el.classList.contains('update')) {
+                    el.style.color = textColor;
+                }
+            });
+        });
     }
 
-    document.getElementById('reset-bg-color').onclick = () => document.getElementById('bg-color').value = '#141414';
-    document.getElementById('reset-text-color').onclick = () => document.getElementById('text-color').value = '#eef';
-    document.getElementById('apply-theme').onclick = () => {
-        localStorage.setItem('bg_color', document.getElementById('bg-color').value);
-        localStorage.setItem('text_color', document.getElementById('text-color').value);
-        applyTheme(document.getElementById('bg-color').value, document.getElementById('text-color').value);
-        showToast('主题已应用', 'success');
-    };
-    document.getElementById('apply-language').onclick = () => {
-        showToast('页面将重新加载', 'info');
-        setTimeout(() => window.location.reload(), 500);
-    };
-    document.getElementById('save-settings').onclick = () => {
-        localStorage.setItem('exe_path', document.getElementById('exe-path').value);
-        showToast('设置已保存', 'success');
-    };
-    document.getElementById('browse-exe').onclick = async () => {
-        const res = await fetch('/api/browse-exe', { method: 'POST' });
-        const data = await res.json();
-        if (res.ok) {
-            document.getElementById('exe-path').value = data.path;
-            localStorage.setItem('exe_path', data.path);
-        }
-    };
 
-    // ==================== 启动按钮 ====================
-    document.getElementById('launch-game-btn').onclick = () => window.location.href = 'steam://rungameid/1017180';
+
+    // 添加波纹效果到所有按钮
+    function addRippleEffect(button) {
+        button.addEventListener('click', function(e) {
+            // 移除现有的波纹
+            const existingRipples = this.querySelectorAll('.ripple');
+            existingRipples.forEach(ripple => ripple.remove());
+            
+            // 创建新的波纹
+            const ripple = document.createElement('span');
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.cssText = `
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.7);
+                transform: scale(0);
+                animation: ripple-animation 0.6s linear;
+                pointer-events: none;
+                width: ${size}px;
+                height: ${size}px;
+                left: ${x}px;
+                top: ${y}px;
+            `;
+            ripple.classList.add('ripple');
+            
+            this.style.position = 'relative';
+            this.style.overflow = 'hidden';
+            this.appendChild(ripple);
+            
+            // 动画结束后移除波纹
+            setTimeout(() => {
+                if (ripple.parentNode === this) {
+                    this.removeChild(ripple);
+                }
+            }, 600);
+        });
+    }
     
-    document.getElementById('launch-exe-btn').onclick = async () => {
-        const exePath = localStorage.getItem('exe_path');
+    // 为所有按钮添加波纹效果
+    function initRippleEffects() {
+        // 动作按钮
+        document.querySelectorAll('.action-btn').forEach(btn => addRippleEffect(btn));
+        // 安装/卸载按钮
+        document.querySelectorAll('.install, .uninstall, .update').forEach(btn => addRippleEffect(btn));
+        // 标签按钮
+        document.querySelectorAll('.tab-button').forEach(btn => addRippleEffect(btn));
+        // 视图切换按钮
+        document.querySelectorAll('.view-btn').forEach(btn => addRippleEffect(btn));
+        // 设置按钮
+        document.querySelectorAll('#apply-theme, #apply-language, #save-settings').forEach(btn => addRippleEffect(btn));
+    }
+
+    // 监听筛选
+    document.getElementById('search').addEventListener('input', filterMods);
+    document.getElementById('category').addEventListener('change', filterMods);
+
+    // 启动游戏按钮
+    document.getElementById('launch-game-btn').addEventListener('click', () => {
+        window.location.href = 'steam://rungameid/1017180';
+    });
+
+    // 严格模式切换
+    document.getElementById('strict-mode').addEventListener('change', (e) => {
+        localStorage.setItem('strict_mode', e.target.checked);
+        // 重新加载当前页面数据
+        if (document.getElementById('browse-tab').classList.contains('active')) {
+            loadMods(currentBrowseSource);
+        } else if (document.getElementById('modpacks-tab').classList.contains('active')) {
+            loadModpacks(currentModpackSource);
+        } else if (document.getElementById('manage-tab').classList.contains('active')) {
+            loadInstalled(currentManageSource);
+        }
+    });
+
+    // 设置相关事件监听器
+    // 重置背景颜色
+    document.getElementById('reset-bg-color').addEventListener('click', () => {
+        document.getElementById('bg-color').value = '#141414';
+    });
+    
+    // 重置字体颜色
+    document.getElementById('reset-text-color').addEventListener('click', () => {
+        document.getElementById('text-color').value = '#eef';
+    });
+    
+    // 应用主题
+    document.getElementById('apply-theme').addEventListener('click', () => {
+        const bgColor = document.getElementById('bg-color').value;
+        const textColor = document.getElementById('text-color').value;
+        localStorage.setItem('bg_color', bgColor);
+        localStorage.setItem('text_color', textColor);
+        applyTheme(bgColor, textColor);
+        showToast('主题已应用', 'success');
+    });
+    
+    // 应用语言
+    document.getElementById('apply-language').addEventListener('click', () => {
+        const language = document.getElementById('language-select').value;
+        localStorage.setItem('language', language);
+        showToast('语言设置已保存，页面将重新加载', 'success');
+        // 重新加载页面以应用新语言
+        setTimeout(() => {
+            window.location.href = `/?lang=${language}`;
+        }, 1000);
+    });
+    
+    // 保存所有设置
+    document.getElementById('save-settings').addEventListener('click', () => {
+        const exePath = document.getElementById('exe-path').value;
+        localStorage.setItem('exe_path', exePath);
+        // 严格模式已经通过change事件保存
+        showToast('所有设置已保存', 'success');
+    });
+    
+    // 浏览EXE文件
+    document.getElementById('browse-exe').addEventListener('click', async () => {
+        try {
+            const res = await fetch('/api/browse-exe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById('exe-path').value = data.path;
+                localStorage.setItem('exe_path', data.path);
+                showToast('EXE路径已选择', 'success');
+            } else {
+                showToast(`选择文件失败: ${data.error}，请手动输入路径`, 'warning');
+            }
+        } catch (err) {
+            console.error('打开文件对话框失败:', err);
+            showToast('文件选择功能不可用，请手动输入路径', 'warning');
+        }
+    });
+    
+    // 启动EXE按钮
+    document.getElementById('launch-exe-btn').addEventListener('click', async () => {
+        const exePath = localStorage.getItem('exe_path') || '';
         if (!exePath) {
             showToast('请先在设置中配置游戏EXE路径', 'error');
+            // 切换到设置标签页
             document.querySelector('[data-tab="settings"]').click();
             return;
         }
-        const res = await fetch('/api/launch-exe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: exePath })
-        });
-        const data = await res.json();
-        showToast(res.ok ? '游戏启动成功' : `启动失败: ${data.error}`, res.ok ? 'success' : 'error');
-    };
+        
+        try {
+            const res = await fetch('/api/launch-exe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: exePath })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('游戏启动成功', 'success');
+            } else {
+                showToast(`启动失败: ${data.error}`, 'error');
+            }
+        } catch (err) {
+            showToast('网络错误，无法启动游戏', 'error');
+        }
+    });
     
-    document.getElementById('install-patcher-btn').onclick = async () => {
-        const res = await fetch('/api/install-patcher', { method: 'POST' });
-        const data = await res.json();
-        showToast(res.ok ? '模组加载器已启动' : `启动失败: ${data.error}`, res.ok ? 'success' : 'error');
-    };
+    // 安装模组加载器按钮
+    document.getElementById('install-patcher-btn').addEventListener('click', async () => {
+        try {
+            const res = await fetch('/api/install-patcher', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('模组加载器启动成功', 'success');
+            } else {
+                showToast(`启动失败: ${data.error}`, 'error');
+            }
+        } catch (err) {
+            showToast('网络错误，无法启动模组加载器', 'error');
+        }
+    });
 
-    // ==================== 初始加载 ====================
+    // 启动轮询
     startTaskPolling();
-    
-    // 优先使用本地源（索引4）加载模组
-    const defaultSource = 4; // 本地源（中文）
-    
-    loadSources().then(async () => {
+
+    // 初始加载（强制使用极狐源）
+    loadSources().then(() => {
+        currentBrowseSource = 0;
+        currentModpackSource = 0;
+        currentManageSource = 0;
+        // 同步下拉框值
+        document.getElementById('source-select').value = currentBrowseSource;
+        document.getElementById('modpack-source-select').value = currentModpackSource;
+        document.getElementById('manage-source-select').value = currentManageSource;
+        
+        // 调试：检查语言设置
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLang = urlParams.get('lang');
+        console.log('页面加载完成，URL语言参数:', urlLang, '当前语言设置:', localStorage.getItem('language'));
+        
+        // 初始化设置
         initSettings();
-        await loadFavoritesFromServer();
-        currentBrowseSource = defaultSource;
-        currentModpackSource = 4; // 本地模组包源
-        currentManageSource = defaultSource;
-        document.getElementById('source-select').value = defaultSource;
-        document.getElementById('modpack-source-select').value = 4;
-        document.getElementById('manage-source-select').value = defaultSource;
-        loadMods(defaultSource);
-        loadModpacks(4);
-        loadInstalled(defaultSource);
+        
+        // 初始化波纹效果
+        initRippleEffects();
+        
+        loadMods(currentBrowseSource);
+        loadModpacks(currentModpackSource);
+        loadInstalled(currentManageSource);
     });
 
 
