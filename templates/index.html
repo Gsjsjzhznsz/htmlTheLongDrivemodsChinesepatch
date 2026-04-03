@@ -363,7 +363,9 @@
     async function loadSources() {
         try {
             const res = await fetch('/api/sources');
+            console.log('源 API 响应状态:', res.status);
             sources = await res.json();
+            console.log('源列表:', sources);
             
             const html = sources.map(s => `<option value="${s.index}">${escapeHtml(s.name)}</option>`).join('');
             
@@ -380,11 +382,16 @@
     async function loadMods(source) {
         const container = document.getElementById('mod-list');
         container.innerHTML = '<div class="loading">加载模组列表中...</div>';
-        const strict = document.getElementById('strict-mode').checked;
         try {
-            const res = await fetch(`/api/mods?source=${source}&strict=${strict}`);
+            const res = await fetch(`/api/mods?source=${source}`);
+            console.log('模组 API 响应状态:', res.status);
+            if (!res.ok) {
+                container.innerHTML = `<div class="error">加载失败: HTTP ${res.status}</div>`;
+                return;
+            }
             const data = await res.json();
-            allMods = data.mods;
+            console.log('模组数据:', data);
+            allMods = data.mods || [];
             if (data.active_source !== undefined) {
                 currentBrowseSource = data.active_source;
                 const select = document.getElementById('source-select');
@@ -393,7 +400,8 @@
             updateCategories();
             filterMods();
         } catch (err) {
-            container.innerHTML = '<div class="error">加载失败，请确保后端运行中</div>';
+            console.error('加载模组列表失败', err);
+            container.innerHTML = '<div class="error">加载失败，请确保后端运行中: ' + err.message + '</div>';
             showToast('加载模组列表失败', 'error');
         }
     }
@@ -1523,12 +1531,21 @@
     // ==================== 初始加载 ====================
     startTaskPolling();
     
+    // 优先使用本地源（索引4）加载模组
+    const defaultSource = 4; // 本地源（中文）
+    
     loadSources().then(async () => {
         initSettings();
         await loadFavoritesFromServer();
-        loadMods(currentBrowseSource);
-        loadModpacks(currentModpackSource);
-        loadInstalled(currentManageSource);
+        currentBrowseSource = defaultSource;
+        currentModpackSource = 4; // 本地模组包源
+        currentManageSource = defaultSource;
+        document.getElementById('source-select').value = defaultSource;
+        document.getElementById('modpack-source-select').value = 4;
+        document.getElementById('manage-source-select').value = defaultSource;
+        loadMods(defaultSource);
+        loadModpacks(4);
+        loadInstalled(defaultSource);
     });
 
 

@@ -157,6 +157,13 @@ app = Flask(__name__,
 # 基础路径（用于本地文件）
 BASE_DIR = Path(get_resource_path("."))
 
+logger.info(f"BASE_DIR: {BASE_DIR}")
+logger.info(f"BASE_DIR exists: {BASE_DIR.exists()}")
+if (BASE_DIR / "modlist_3.json").exists():
+    logger.info("本地 modlist_3.json 存在")
+else:
+    logger.warning("本地 modlist_3.json 不存在")
+
 # 游戏路径配置（使用新的路径处理函数）
 DOCUMENTS_PATH = get_documents_path()
 GAME_PATH = get_game_path()
@@ -731,13 +738,18 @@ def serve_static(filename):
 
 @app.route("/api/sources")
 def get_sources():
-    return jsonify([{"name": s["name"], "index": i} for i, s in enumerate(MODLIST_SOURCES)])
+    logger.info("API /api/sources 被调用")
+    result = [{"name": s["name"], "index": i} for i, s in enumerate(MODLIST_SOURCES)]
+    logger.info(f"返回源列表: {result}")
+    return jsonify(result)
 
 @app.route("/api/mods", methods=["GET"])
 def get_mods():
     source_index = request.args.get("source", 0, type=int)
     strict = request.args.get("strict", "false").lower() == "true"
+    logger.info(f"API /api/mods 被调用, source={source_index}, strict={strict}")
     mods, active_index = load_modlist(source_index, strict)
+    logger.info(f"加载了 {len(mods)} 个模组, 实际源索引: {active_index}")
     installed = get_installed_mods()
     
     # 统计缺少文件名的模组

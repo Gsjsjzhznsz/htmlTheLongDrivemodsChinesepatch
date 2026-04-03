@@ -1845,3 +1845,17 @@
 2026-04-03 21:21:11,377 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:21:11] "GET /api/tasks HTTP/1.1" 200 -
 2026-04-03 21:22:11,381 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:22:11] "GET /api/tasks HTTP/1.1" 200 -
 2026-04-03 21:23:11,376 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:23:11] "GET /api/tasks HTTP/1.1" 200 -
+2026-04-03 21:29:48,096 - __main__ - INFO - 用户文档路径: C:\Users\Administrator\Documents
+2026-04-03 21:29:48,097 - __main__ - INFO - 游戏路径: C:\Users\Administrator\Documents\TheLongDrive
+2026-04-03 21:29:48,098 - __main__ - INFO - 管理员模式: True
+2026-04-03 21:29:48,108 - __main__ - INFO - 已启动自动打开浏览器线程
+2026-04-03 21:29:48,122 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-04-03 21:29:48,123 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-04-03 21:29:50,191 - __main__ - INFO - 已自动打开浏览器
+2026-04-03 21:29:50,484 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:29:50] "GET / HTTP/1.1" 200 -
+2026-04-03 21:29:50,843 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:29:50] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-03 21:30:28,375 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:30:28] "GET / HTTP/1.1" 200 -
+2026-04-03 21:30:37,306 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:30:37] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-04-03 21:30:38,133 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:30:38] "GET /static/tld.ico HTTP/1.1" 200 -
+2026-04-03 21:30:38,206 - werkzeug - INFO - 127.0.0.1 - - [03/Apr/2026 21:30:38] "[36mGET /static/tld.ico HTTP/1.1[0m" 304 -
