@@ -6,6 +6,8 @@ import zipfile
 import time
 import threading
 import logging
+import subprocess
+import queue
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from urllib.parse import urlparse
@@ -948,8 +950,8 @@ def browse_exe():
             from tkinter import filedialog
             
             root = tk.Tk()
-            root.withdraw()  # 隐藏主窗口
-            root.attributes('-topmost', True)  # 置顶
+            root.withdraw()
+            root.attributes('-topmost', True)
             
             file_path = filedialog.askopenfilename(
                 title="选择游戏EXE文件",
@@ -965,9 +967,6 @@ def browse_exe():
     def powershell_file_dialog():
         """使用PowerShell打开文件对话框"""
         try:
-            import subprocess
-            import platform
-            
             if platform.system() != "Windows":
                 return None
             
