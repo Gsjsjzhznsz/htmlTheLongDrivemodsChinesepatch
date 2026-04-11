@@ -1,6 +1,32 @@
 { 
   "Mods": [
 	{
+		"Name": "Ask Jimmy",
+		"Version": "1.0.0",
+		"Author": "Soss",
+		"Description": "Jimmy used to be completely useless... Not anymore! This mod turns the plush dog Jimmy into a talking companion : a chaotic, slightly unhinged magic 8-ball you can carry around. Jimmy may or may not be reliable. Use at your own risk. Don't forget to feed him!",
+		"Date": "06/04/2026",
+		"Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/AskJimmy.dll",
+		"PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/picture/askjimmy_minia.png",
+		"FileName": "AskJimmy.dll",
+		"Category": "Items",
+		"Changelog": "",
+		"Dependency": ""
+    },
+	{
+		"Name": "Basket Sizes",
+		"Version": "1.0.0",
+		"Author": "Soss",
+		"Description": "The mod adds four additional basket sizes : XS, S, L, and XL - alongside the default one. All models have been reworked to ensure proper collision and bug fixes, including the vanilla basket.",
+		"Date": "02/04/2026",
+		"Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/SossBasketSizes.dll",
+		"PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/picture/basketsizes_minia.png",
+		"FileName": "SossBasketSizes.dll",
+		"Category": "Items",
+		"Changelog": "",
+		"Dependency": ""
+    },
+	{
 		"Name": "Achievements",
 		"Version": "1.0.0",
 		"Author": "M-",
@@ -28,7 +54,7 @@
     },
 	{
 		"Name": "Car Batteries",
-		"Version": "1.1.0",
+		"Version": "1.1.1",
 		"Author": "RUNDEN, M-",
 		"Description": "Started by RUNDEN, finished by M-\n\n- Adds car battery slots to every vehicle excluding bikes\n- Batteries have a chance to replace cigarettes\n- Leaving your electrics on will drain the battery",
 		"Date": "09/02/2026",
@@ -36,20 +62,20 @@
 		"PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/picture/CarBattery.png",
 		"FileName": "RUNDEN_M_CarBattery.dll",
 		"Category": "Items",
-		"Changelog": "- Fix for mysterious cubes appearing throughout the world\n- Fix for UFO EMP not working\n- Added push starting\n  - If the battery has more than 9 volts, the engine can start normally\n  - If the battery has between 3 and 9 volts, the engine won't start if the vehicle is stationary, instead you need to be rolling for the vehicle to start\n  - If the battery has less than 3 volts, even push starting won't start the engine",
+		"Changelog": "- Fix for battery indicator light coming on randomly\n- Fix for battery not charging at idle",
 		"Dependency": ""
     },
 	{
 		"Name": "World Tweaker",
-		"Version": "1.1.2",
+		"Version": "2.0.1",
 		"Author": "M-",
-		"Description": "Alter the world however you want it\n\nAllows you to alter the following world settings:\n- Road length\n  - Less than 5,000 km roads won't count towards the Long Driver role\n- Straight or normal roads\n- Building density\n- Object density\n  - Small rocks, cacti, foliage, etc\n- Large rock density\n- Item spawn rate\n  - Controls the amount of items that spawn in buildings and buried underground\n  - This also works for SgtJoe's Points of Interest mod buildings\n- Fluid amount\n  - Controls the quantity of fluids that spawn in containers and building taps\n- Crate modifier\n  - Allows modifying crates to reduce the quantity of items and randomise their conditions\n- World type\n  - Flat worlds\n  - Vanilla world\n  - Canyon - The road spawns in a canyon deep beneath the surface\n  - Road bridge - The road is suspended on ground high above the surface\n\nSettings accessible by clicking 'Start' on the main menu\nCannot be applied to existing saves, except for item settings",
+		"Description": "Alter the world however you want it\n\nAllows you to alter the following world settings:\n- Road length\n  - Less than 5,000 km roads won't count towards the Long Driver role\n- Straight or normal roads\n- Building density\n- Object density\n  - Small rocks, cacti, foliage, etc\n- Large rock density\n- Item spawn rate\n  - Controls the amount of items that spawn in buildings and buried underground\n  - This also works for SgtJoe's Points of Interest mod buildings\n- Fluid amount\n  - Controls the quantity of fluids that spawn in containers and building taps\n- Crate modifier\n  - Allows modifying crates to reduce the quantity of items and randomise their conditions\n- Munkas spawn rate\n- World types\n  - Flat worlds\n  - Vanilla world\n  - Canyon - The road spawns in a canyon deep beneath the surface\n  - Road bridge - The road is suspended on ground high above the surface\n  - Tropical\n    - Inspired by RUNDEN's tropical mod for the winter 2019 build\n    - Adds water, swimming, buoyancy and palm trees\n  - Lava\n    - Similar to road bridge, but the world is lava\n    - Don't fall in, it might be a little hot\n\nSettings accessible by clicking 'Start' on the main menu\nCannot be applied to existing saves, except for item settings",
 		"Date": "09/02/2026",
 		"Link": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/M_WorldTweaker.dll",
 		"PictureLink": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/picture/WorldTweaker.png",
 		"FileName": "M_WorldTweaker.dll",
 		"Category": "Gameplay",
-		"Changelog": "Fixes settings persisting through save loads in the same session",
+		"Changelog": "- Adds origin shifting support for coconuts\n- Fixes palm trees randomising sometimes on save load",
 		"Dependency": ""
     },
 	{

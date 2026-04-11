@@ -1,0 +1,22 @@
+{
+    "app_title": "Installateur de Mods TLD",
+    "browse_mods": "📦 Parcourir Mods",
+    "modpacks": "📚 Packs",
+    "installed_mods": "🔧 Installés",
+    "settings": "⚙️ Paramètres",
+    "about": "ℹ️ À propos",
+    "launch_game": "🎮 Lancer Jeu",
+    "install_patcher": "🔧 Installer Patch",
+    "cheat_1000km": "📏 Triche 1000km",
+    "search_placeholder": "Rechercher mod...",
+    "install": "Installer",
+    "uninstall": "Désinstaller",
+    "update": "Mise à jour",
+    "installed": "Installé",
+    "author": "Auteur:",
+    "version": "Version:",
+    "loading": "Chargement...",
+    "toast_install_success": "installé avec succès",
+    "confirm_uninstall": "Désinstaller {name}?",
+    "error_no_exe_path": "Veuillez configurer le chemin EXE"
+}

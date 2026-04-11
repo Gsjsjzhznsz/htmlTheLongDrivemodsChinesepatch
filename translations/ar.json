@@ -1,0 +1,22 @@
+{
+    "app_title": "مثبت تعديلات TLD",
+    "browse_mods": "📦 استعراض التعديلات",
+    "modpacks": "📚 حزم التعديلات",
+    "installed_mods": "🔧 المثبتة",
+    "settings": "⚙️ الإعدادات",
+    "about": "ℹ️ حول",
+    "launch_game": "🎮 تشغيل اللعبة",
+    "install_patcher": "🔧 تثبيت التصحيح",
+    "cheat_1000km": "📏 غش 1000 كم",
+    "search_placeholder": "ابحث عن تعديل...",
+    "install": "تثبيت",
+    "uninstall": "إلغاء التثبيت",
+    "update": "تحديث",
+    "installed": "مثبت",
+    "author": "المؤلف:",
+    "version": "الإصدار:",
+    "loading": "جاري التحميل...",
+    "toast_install_success": "تم التثبيت بنجاح",
+    "confirm_uninstall": "هل تريد إلغاء تثبيت {name}؟",
+    "error_no_exe_path": "يرجى تعيين مسار ملف EXE"
+}

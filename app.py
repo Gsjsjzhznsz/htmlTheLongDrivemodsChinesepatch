@@ -6,1018 +6,395 @@ import zipfile
 import time
 import threading
 import logging
-from pathlib import Path
-from urllib.parse import urlparse
+import re
 import sys
-
-import requests
+import ctypes
+import subprocess
+from pathlib import Path
 from flask import Flask, jsonify, render_template, request, send_from_directory
 
-# 路径处理函数
-def get_resource_path(relative_path):
-    """获取资源文件的绝对路径（支持PyInstaller打包）"""
+# 控制台设置
+if sys.platform == 'win32':
     try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
+        ctypes.windll.kernel32.SetConsoleOutputCP(65001)
+        ctypes.windll.kernel32.SetConsoleCP(65001)
+    except: pass
+
+print("""
+\x1b-------------------------------+
+| TLD 网页模组安装器    |
+| The Long Drive Mod Installer |
++-------------------------------+\x1b
+""")
+
+import requests
+
+# ==================== 路径与日志 ====================
+def get_resource_path(relative_path):
+    try: base_path = sys._MEIPASS
+    except Exception: base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
-# 日志配置
+class ColoredFormatter(logging.Formatter):
+    def format(self, record):
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
+        return formatter.format(record)
+
 def setup_logging():
-    """配置日志，同时输出到控制台和文件"""
-    if getattr(sys, 'frozen', False):
-        log_dir = os.path.dirname(sys.executable)
-        log_file = os.path.join(log_dir, 'app.log')
-    else:
-        log_file = 'app.log'
-    
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file, encoding='utf-8'),
-            logging.StreamHandler()
-        ]
-    )
+    if getattr(sys, 'frozen', False): log_file = os.path.join(os.path.dirname(sys.executable), 'app.log')
+    else: log_file = 'app.log'
+    logging.basicConfig(level=logging.INFO, handlers=[
+        logging.FileHandler(log_file, encoding='utf-8'),
+        logging.StreamHandler()
+    ], force=True)
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+            handler.setFormatter(ColoredFormatter())
     return logging.getLogger(__name__)
 
 logger = setup_logging()
 
-# 语言系统
+# ==================== 语言与配置 ====================
 def load_translations(lang_code="zh"):
-    """加载翻译文件"""
     try:
-        translations_path = Path(get_resource_path("translations")) / f"{lang_code}.json"
-        if translations_path.exists():
-            with open(translations_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        else:
-            logger.warning(f"翻译文件不存在: {translations_path}")
-            # 返回空字典，使用默认文本
-            return {}
-    except Exception as e:
-        logger.error(f"加载翻译文件失败: {e}")
-        return {}
+        path = Path(get_resource_path("translations")) / f"{lang_code}.json"
+        if path.exists(): return json.loads(path.read_text("utf-8"))
+    except: return {}
 
-def get_user_language():
-    """获取用户语言偏好"""
-    # 这里可以从请求中获取语言设置
-    # 默认使用中文
-    return "zh"
-
-# Flask应用（只定义一次）
-app = Flask(__name__,
-           template_folder=get_resource_path('templates'),
-           static_folder=get_resource_path('static'))
-
-# 基础路径（用于本地文件）
+app = Flask(__name__, template_folder=get_resource_path('templates'), static_folder=get_resource_path('static'))
 BASE_DIR = Path(get_resource_path("."))
-
-# 游戏路径配置
 DOCUMENTS_PATH = Path.home() / "Documents"
 GAME_PATH = DOCUMENTS_PATH / "TheLongDrive"
 MODS_PATH = GAME_PATH / "Mods"
 VERSIONS_PATH = MODS_PATH / "temp" / "Versions"
+CONFIG_FILE = GAME_PATH / "installer_config.json"
 
 MODS_PATH.mkdir(parents=True, exist_ok=True)
 VERSIONS_PATH.mkdir(parents=True, exist_ok=True)
 
-# 模组列表源配置（使用 BASE_DIR）
 MODLIST_SOURCES = [
-    {
-        "name": "官方源 (GitLab)",
-        "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/modlist_3.json"
-    },
-    {
-        "name": "极狐镜像源 (GitLab中国)",
-        "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"
-    },
-    {
-        "name": "GitHub镜像源 (中国)",
-        "url": "https://github.com/Gsjsjzhznsz/htmlTheLongDrivemodsChinesepatch/raw/refs/heads/main/modlist_3.json"
-    },
-    {
-        "name": "官方本地源（英文）",
-        "url": None,
-        "local_path": BASE_DIR / "en-modlist_3.json"
-    },
-    {
-        "name": "官方本地源（中文）",
-        "url": None,
-        "local_path": BASE_DIR / "modlist_3.json"
-    }
+    {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/modlist_3.json"},
+    {"name": "极狐镜像源(中文)", "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"},
+    {"name": "Local Source(english)", "url": None, "local_path": BASE_DIR / "en-modlist_3.json"},
+    {"name": "本地源(中文)", "url": None, "local_path": BASE_DIR / "modlist_3.json"}
 ]
-
 MODPACK_SOURCES = [
-    {
-        "name": "官方源 (GitLab)",
-        "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"
-    },
-    {
-        "name": "极狐镜像源 (GitLab中国)",
-        "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"
-    },
-    {
-        "name": "GitHub镜像源 (中国)",
-        "url": "https://github.com/Gsjsjzhznsz/htmlTheLongDrivemodsChinesepatch/raw/refs/heads/main/Modpacks/modlist_3.json"
-    },
-    {
-        "name": "官方本地源",
-        "url": None,
-        "local_path": BASE_DIR / "Modpacks" / "en-modlist_3.json"
-    },
-    {
-        "name": "本地源",
-        "url": None,
-        "local_path": BASE_DIR / "Modpacks" / "modlist_3.json"
-    }
+    {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
+    {"name": "极狐镜像源(中文)", "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
+    {"name": "Local Source(english)", "url": None, "local_path": BASE_DIR / "Modpacks" / "en-modlist_3.json"},
+    {"name": "本地源(中文)", "url": None, "local_path": BASE_DIR / "Modpacks" / "modlist_3.json"}
 ]
 
-# 下载任务队列（保留所有任务，包括已完成）
 download_tasks = []
 task_counter = 0
 task_lock = threading.Lock()
 
-# ==================== 文件收集工具 ====================
-def collect_all_files(directory):
-    file_list = []
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            file_list.append(os.path.join(root, file))
-    return file_list
+# ==================== 工具函数 ====================
+def load_config():
+    if CONFIG_FILE.exists():
+        try: return json.loads(CONFIG_FILE.read_text("utf-8"))
+        except: return {}
+    return {}
 
-# ==================== 网络请求 ====================
-def fetch_with_retry(url, max_retries=5, timeout=10):
+def save_config(cfg):
+    CONFIG_FILE.write_text(json.dumps(cfg, ensure_ascii=False), encoding="utf-8")
+
+def fetch_with_retry(url, max_retries=3, timeout=10):
     for attempt in range(max_retries):
         try:
-            response = requests.get(url, timeout=timeout)
-            if response.status_code == 200:
-                return response
-            else:
-                logger.warning(f"请求返回状态码 {response.status_code} (尝试 {attempt + 1}/{max_retries})")
-        except requests.exceptions.Timeout:
-            logger.warning(f"请求超时 (尝试 {attempt + 1}/{max_retries})")
-        except requests.exceptions.ConnectionError:
-            logger.warning(f"连接失败 (尝试 {attempt + 1}/{max_retries})")
-        except Exception as e:
-            logger.warning(f"请求异常: {e} (尝试 {attempt + 1}/{max_retries})")
-        
-        if attempt < max_retries - 1:
-            time.sleep(1)
+            r = requests.get(url, timeout=timeout)
+            if r.status_code == 200: return r
+        except: pass
+        time.sleep(1)
     return None
 
-# ==================== 模组列表加载 ====================
-def load_modlist(source_index=0, strict=False):
-    """加载模组列表，strict=True时只尝试指定源，失败则返回空列表"""
-    if strict:
-        # 严格模式：只尝试指定源
-        if source_index >= len(MODLIST_SOURCES):
-            logger.error(f"严格模式：源索引 {source_index} 超出范围")
-            return [], source_index
-        source = MODLIST_SOURCES[source_index]
-        try:
-            if source.get("url"):
-                logger.info(f"严格模式：正在尝试从 {source['name']} 加载...")
-                response = fetch_with_retry(source["url"])
-                if response:
-                    data = response.json()
-                    mods = data.get("Mods", [])
-                    if mods:
-                        logger.info(f"严格模式：从 {source['name']} 加载 {len(mods)} 个模组")
-                        return mods, source_index
-                    else:
-                        logger.warning(f"严格模式：{source['name']} 返回的模组列表为空")
-                else:
-                    logger.warning(f"严格模式：{source['name']} 请求失败")
-            else:
-                local_path = source.get("local_path")
-                if local_path and local_path.exists():
-                    with open(local_path, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                    mods = data.get("Mods", [])
-                    if mods:
-                        logger.info(f"严格模式：从 {source['name']} 加载 {len(mods)} 个模组")
-                        return mods, source_index
-                    else:
-                        logger.warning(f"严格模式：{source['name']} 文件存在但模组列表为空")
-                else:
-                    logger.warning(f"严格模式：{source['name']} 本地文件不存在")
-        except Exception as e:
-            logger.error(f"严格模式：{source['name']} 加载异常: {e}")
-        logger.error(f"严格模式：源 {source['name']} 加载失败")
-        return [], source_index
-    else:
-        # 非严格模式：自动回退到后续源
-        for i in range(source_index, len(MODLIST_SOURCES)):
-            source = MODLIST_SOURCES[i]
-            try:
-                if source.get("url"):
-                    logger.info(f"正在尝试从 {source['name']} 加载...")
-                    response = fetch_with_retry(source["url"])
-                    if response:
-                        data = response.json()
-                        mods = data.get("Mods", [])
-                        if mods:
-                            logger.info(f"从 {source['name']} 加载 {len(mods)} 个模组")
-                            return mods, i
-                        else:
-                            logger.warning(f"{source['name']} 返回的模组列表为空")
-                    else:
-                        logger.warning(f"{source['name']} 请求失败，尝试下一个源")
-                else:
-                    local_path = source.get("local_path")
-                    if local_path and local_path.exists():
-                        with open(local_path, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                        mods = data.get("Mods", [])
-                        if mods:
-                            logger.info(f"从 {source['name']} 加载 {len(mods)} 个模组")
-                            return mods, i
-                        else:
-                            logger.warning(f"{source['name']} 文件存在但模组列表为空")
-                    else:
-                        logger.warning(f"{source['name']} 本地文件不存在")
-            except Exception as e:
-                logger.error(f"{source['name']} 加载异常: {e}")
-                continue
-        logger.error("所有源均加载失败，返回空列表")
-        return [], source_index
+def get_normalized_filename(filename):
+    if not filename: return ""
+    return re.sub(r'[^a-zA-Z0-9]', '', os.path.splitext(filename)[0]).lower()
 
-def load_modpacks(source_index=0, strict=False):
-    """加载模组包列表，strict=True时只尝试指定源，失败则返回空列表"""
-    if strict:
-        # 严格模式：只尝试指定源
-        if source_index >= len(MODPACK_SOURCES):
-            logger.error(f"严格模式：模组包源索引 {source_index} 超出范围")
-            return [], source_index
-        source = MODPACK_SOURCES[source_index]
-        try:
-            if source.get("url"):
-                logger.info(f"严格模式：正在尝试从 {source['name']} 加载模组包...")
-                response = fetch_with_retry(source["url"])
-                if response:
-                    data = response.json()
-                    modpacks = data.get("Mods", [])
-                    if modpacks:
-                        logger.info(f"严格模式：从 {source['name']} 加载 {len(modpacks)} 个模组包")
-                        return modpacks, source_index
-                    else:
-                        logger.warning(f"严格模式：{source['name']} 返回的模组包列表为空")
-                else:
-                    logger.warning(f"严格模式：{source['name']} 请求失败")
-            else:
-                local_path = source.get("local_path")
-                if local_path and local_path.exists():
-                    with open(local_path, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                    modpacks = data.get("Mods", [])
-                    if modpacks:
-                        logger.info(f"严格模式：从 {source['name']} 加载 {len(modpacks)} 个模组包")
-                        return modpacks, source_index
-                    else:
-                        logger.warning(f"严格模式：{source['name']} 文件存在但模组包列表为空")
-                else:
-                    logger.warning(f"严格模式：{source['name']} 本地文件不存在")
-        except Exception as e:
-            logger.error(f"严格模式：{source['name']} 加载异常: {e}")
-        logger.error(f"严格模式：模组包源 {source['name']} 加载失败")
-        return [], source_index
-    else:
-        # 非严格模式：自动回退到后续源
-        for i in range(source_index, len(MODPACK_SOURCES)):
-            source = MODPACK_SOURCES[i]
-            try:
-                if source.get("url"):
-                    logger.info(f"正在尝试从 {source['name']} 加载模组包...")
-                    response = fetch_with_retry(source["url"])
-                    if response:
-                        data = response.json()
-                        modpacks = data.get("Mods", [])
-                        if modpacks:
-                            logger.info(f"从 {source['name']} 加载 {len(modpacks)} 个模组包")
-                            return modpacks, i
-                        else:
-                            logger.warning(f"{source['name']} 返回的模组包列表为空")
-                    else:
-                        logger.warning(f"{source['name']} 请求失败，尝试下一个源")
-                else:
-                    local_path = source.get("local_path")
-                    if local_path and local_path.exists():
-                        with open(local_path, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                        modpacks = data.get("Mods", [])
-                        if modpacks:
-                            logger.info(f"从 {source['name']} 加载 {len(modpacks)} 个模组包")
-                            return modpacks, i
-                        else:
-                            logger.warning(f"{source['name']} 文件存在但模组包列表为空")
-                    else:
-                        logger.warning(f"{source['name']} 本地文件不存在")
-            except Exception as e:
-                logger.error(f"{source['name']} 加载异常: {e}")
-                continue
-        logger.error("所有模组包源均加载失败，返回空列表")
-        return [], source_index
+# ==================== 数据加载 ====================
+def load_data_from_source(sources, source_index, data_key="Mods", strict=False):
+    if source_index >= len(sources): return [], source_index
+    source = sources[source_index]
+    data = []
+    try:
+        if source.get("url"):
+            logger.info(f"尝试从 {source['name']} 加载...")
+            resp = fetch_with_retry(source["url"])
+            if resp:
+                data = resp.json().get(data_key, [])
+                if data: return data, source_index
+        else:
+            path = source.get("local_path")
+            if path and path.exists():
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f).get(data_key, [])
+                    if data: return data, source_index
+    except Exception as e: logger.error(f"加载失败: {e}")
+    
+    if not strict and source_index + 1 < len(sources):
+        return load_data_from_source(sources, source_index + 1, data_key, False)
+    return [], source_index
 
-# ==================== 安装记录管理 ====================
+# ==================== 安装逻辑 ====================
 def get_installed_mods():
     installed = {}
     if VERSIONS_PATH.exists():
-        for file in VERSIONS_PATH.glob("*.txt"):
-            if file.name.endswith("_manifest.json"):
-                continue
-            name = file.stem
-            version = file.read_text(encoding="utf-8").strip()
-            installed[name] = version
+        for f in VERSIONS_PATH.glob("*.txt"):
+            installed[f.stem] = f.read_text(encoding="utf-8").strip()
     return installed
 
 def set_installed_version(mod_name, version):
-    version_file = VERSIONS_PATH / f"{mod_name}.txt"
-    version_file.write_text(version, encoding="utf-8")
+    (VERSIONS_PATH / f"{mod_name}.txt").write_text(version, encoding="utf-8")
 
-def remove_installed_version(mod_name):
-    version_file = VERSIONS_PATH / f"{mod_name}.txt"
-    if version_file.exists():
-        version_file.unlink()
-
-# ==================== 依赖处理 ====================
-def extract_dependency_mods(dependency_str):
-    if not dependency_str or dependency_str.strip() == "":
-        return []
-    if "http" in dependency_str:
-        parsed = urlparse(dependency_str)
-        filename = os.path.basename(parsed.path)
-        if filename:
-            return [filename]
-    if dependency_str.endswith(".dll"):
-        return [dependency_str]
-    return []
-
-def find_mod_by_filename(filename, source_index=0, strict=False):
-    mods, _ = load_modlist(source_index, strict)
-    for mod in mods:
-        if mod.get("FileName") == filename:
-            return mod
-    return None
-
-# ==================== 下载管理 ====================
 def add_download_task(filename, mod_name):
     global task_counter
     with task_lock:
         task_id = task_counter
         task_counter += 1
-        download_tasks.append({
-            "id": task_id,
-            "filename": filename,
-            "name": mod_name,
-            "status": "pending",
-            "progress": 0,
-            "speed": 0,
-            "total_size": 0,
-            "downloaded": 0,
-            "error": None,
-            "start_time": None
-        })
+        download_tasks.append({"id": task_id, "filename": filename, "name": mod_name, "status": "pending", "progress": 0})
     return task_id
 
 def update_task(task_id, **kwargs):
     with task_lock:
-        for task in download_tasks:
-            if task["id"] == task_id:
-                task.update(kwargs)
-                break
+        for t in download_tasks:
+            if t["id"] == task_id: t.update(kwargs); break
 
 def download_file_with_progress(url, dest_path, task_id):
     try:
-        response = requests.get(url, stream=True, timeout=30)
-        response.raise_for_status()
-        total_size = int(response.headers.get('content-length', 0))
-        update_task(task_id, total_size=total_size, status="downloading", start_time=time.time())
-
-        downloaded = 0
-        start_time = time.time()
+        r = requests.get(url, stream=True, timeout=30)
+        r.raise_for_status()
+        total = int(r.headers.get('content-length', 0))
+        update_task(task_id, total_size=total, status="downloading")
+        dl = 0; start = time.time()
         with open(dest_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
+            for chunk in r.iter_content(8192):
                 if chunk:
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    update_task(task_id, downloaded=downloaded)
-                    progress = (downloaded / total_size * 100) if total_size > 0 else 0
-                    elapsed = time.time() - start_time
-                    speed = downloaded / elapsed if elapsed > 0 else 0
-                    update_task(task_id, progress=progress, speed=speed)
-
+                    f.write(chunk); dl += len(chunk)
+                    update_task(task_id, downloaded=dl, progress=(dl/total*100 if total else 0), speed=dl/(time.time()-start))
         update_task(task_id, status="completed", progress=100)
         return True
     except Exception as e:
         update_task(task_id, status="failed", error=str(e))
         return False
 
-def download_file(url, dest_path):
-    try:
-        response = requests.get(url, stream=True, timeout=30)
-        response.raise_for_status()
-        with open(dest_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        return True
-    except Exception as e:
-        logger.error(f"下载失败 {url}: {e}")
-        return False
-
-# ==================== 模组安装 ====================
 def install_mod(mod, installed_records):
     filename = mod["FileName"]
     link = mod["Link"]
     mod_name = mod.get("Name", filename)
-
-    if mod_name in installed_records:
-        return False, f"模组 {mod_name} 已安装"
-
+    
+    if mod_name in installed_records: return False, "Already installed"
+    
     task_id = add_download_task(filename, mod_name)
-
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        tmp_path = tmp.name
-
+    with tempfile.NamedTemporaryFile(delete=False) as tmp: tmp_path = tmp.name
     try:
-        if not download_file_with_progress(link, tmp_path, task_id):
-            update_task(task_id, status="failed")
-            return False, f"下载失败: {link}"
-
-        installed_files = []
+        if not download_file_with_progress(link, tmp_path, task_id): return False, "Download failed"
         extract_temp = Path(tempfile.mkdtemp())
-
-        if filename.lower().endswith(('.zip', '.dll')):
-            try:
-                with zipfile.ZipFile(tmp_path, "r") as zip_ref:
-                    zip_ref.extractall(extract_temp)
-                is_zip = True
-            except (zipfile.BadZipFile, NotImplementedError):
-                is_zip = False
-                shutil.copy2(tmp_path, extract_temp / filename)
-
-            # 记录所有将要安装的文件
-            file_records = []
-            for item in extract_temp.iterdir():
-                if item.is_dir():
-                    for root, dirs, files in os.walk(item):
-                        for file in files:
-                            src_file = os.path.join(root, file)
-                            rel_path = os.path.relpath(src_file, extract_temp)
-                            target_file = MODS_PATH / rel_path
-                            file_records.append(str(target_file))
-                else:
-                    target_file = MODS_PATH / item.name
-                    file_records.append(str(target_file))
-
-            # 移动文件，确保目标目录存在
-            for item in extract_temp.iterdir():
-                target = MODS_PATH / item.name
-                if item.is_dir():
-                    if target.exists():
-                        shutil.rmtree(target)
-                    # 确保父目录存在
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copytree(item, target)
-                else:
-                    # 确保目标文件的父目录存在
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(item, target)
-            installed_files = file_records
-        else:
-            return False, f"不支持的文件类型: {filename}"
-
-        shutil.rmtree(extract_temp, ignore_errors=True)
-
-        # 保存 manifest 文件
-        manifest_path = VERSIONS_PATH / f"{mod_name}_manifest.json"
-        manifest_path.write_text(json.dumps(installed_files, ensure_ascii=False), encoding="utf-8")
-
-        set_installed_version(mod_name, mod.get("Version", "0"))
-        update_task(task_id, status="completed", progress=100)
-
-        return True, installed_files
-    except Exception as e:
-        update_task(task_id, status="failed", error=str(e))
-        return False, f"安装异常: {str(e)}"
-    finally:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-        if 'extract_temp' in locals() and os.path.exists(extract_temp):
-            shutil.rmtree(extract_temp, ignore_errors=True)
-
-def install_with_deps(mod, installed_records, source_index=0, strict=False):
-    filename = mod["FileName"]
-    mod_name = mod.get("Name", filename)
-
-    if mod_name in installed_records:
-        return [filename], None
-
-    deps = extract_dependency_mods(mod.get("Dependency", ""))
-    for dep_filename in deps:
-        dep_mod = find_mod_by_filename(dep_filename, source_index, strict)
-        if not dep_mod:
-            return None, f"依赖模组 {dep_filename} 不存在于列表中"
-        dep_installed, dep_err = install_with_deps(dep_mod, installed_records, source_index, strict)
-        if dep_err:
-            return None, f"依赖安装失败: {dep_err}"
-
-    ok, result = install_mod(mod, installed_records)
-    if ok:
-        installed_records[mod_name] = mod.get("Version", "0")
-        return [filename], None
-    else:
-        return None, result
-
-# ==================== 模组包安装 ====================
-def install_modpack(modpack):
-    """安装模组包 - 为每个模组创建独立下载任务"""
-    txt_url = modpack.get("Link")
-    if not txt_url:
-        return False, "模组包没有指定模组列表文件"
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp:
-        tmp_path = tmp.name
-
-    try:
-        if not download_file(txt_url, tmp_path):
-            return False, "下载模组列表失败"
-
-        with open(tmp_path, "r", encoding="utf-8") as f:
-            mod_filenames = [line.strip() for line in f if line.strip() and not line.startswith("#")]
-
-        installed = get_installed_mods()
-        installed_copy = installed.copy()
-        results = []
+        try:
+            with zipfile.ZipFile(tmp_path, "r") as z: z.extractall(extract_temp)
+        except: shutil.copy2(tmp_path, extract_temp / filename)
         
-        # 为每个模组创建独立任务
-        for fn in mod_filenames:
-            mod = find_mod_by_filename(fn)
-            if not mod:
-                results.append(f"❌ 模组 {fn} 不存在于列表中")
-                continue
-            mod_name = mod.get("Name", fn)
-            if mod_name in installed_copy:
-                results.append(f"⏭️ 模组 {mod_name} 已安装，跳过")
-                continue
-            
-            # 单独安装每个模组（会创建独立下载任务）
-            _, err = install_with_deps(mod, installed_copy)
-            if err:
-                results.append(f"❌ 安装 {mod_name} 失败: {err}")
+        files_record = []
+        for item in extract_temp.iterdir():
+            target = MODS_PATH / item.name
+            if item.is_dir():
+                if target.exists(): shutil.rmtree(target)
+                shutil.copytree(item, target)
+                for root, _, files in os.walk(target): files_record.extend([os.path.join(root, f) for f in files])
             else:
-                installed_copy[mod_name] = mod.get("Version", "0")
-                results.append(f"✅ 安装 {mod_name} 成功")
-
-        return True, results
-    except Exception as e:
-        return False, f"模组包安装异常: {e}"
+                shutil.copy2(item, target)
+                files_record.append(str(target))
+        
+        (VERSIONS_PATH / f"{mod_name}_manifest.json").write_text(json.dumps(files_record), encoding="utf-8")
+        set_installed_version(mod_name, mod.get("Version", "0"))
+        return True, mod.get("Version", "0")
+    except Exception as e: return False, str(e)
     finally:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-
-# ==================== 模组卸载（仅删除 .dll 文件） ====================
-def delete_empty_folders(path):
-    """递归删除空文件夹"""
-    if not path.exists():
-        return
-    for item in path.iterdir():
-        if item.is_dir():
-            delete_empty_folders(item)
-    try:
-        if path.is_dir() and not any(path.iterdir()):
-            path.rmdir()
-            logger.info(f"删除空文件夹: {path}")
-    except Exception:
-        pass
+        if os.path.exists(tmp_path): os.unlink(tmp_path)
+        if 'extract_temp' in locals(): shutil.rmtree(extract_temp, ignore_errors=True)
 
 def uninstall_mod(mod_name):
-    """卸载模组：只删除 .dll 文件，保留其他文件"""
-    manifest_path = VERSIONS_PATH / f"{mod_name}_manifest.json"
-    dll_deleted = False
-
-    if manifest_path.exists():
+    if not mod_name: return False, "Invalid name"
+    manifest = VERSIONS_PATH / f"{mod_name}_manifest.json"
+    if manifest.exists():
         try:
-            files_to_delete = json.loads(manifest_path.read_text(encoding="utf-8"))
-            for file_path in files_to_delete:
-                path = Path(file_path)
-                if path.exists() and path.is_file() and path.suffix.lower() == '.dll':
-                    path.unlink()
-                    dll_deleted = True
-                    logger.debug(f"删除 DLL 文件: {path}")
-            # 清理空文件夹（仅针对 DLL 所在路径）
-            for file_path in files_to_delete:
-                path = Path(file_path)
-                if path.suffix.lower() == '.dll':
-                    parent = path.parent
-                    delete_empty_folders(parent)
-            manifest_path.unlink()
-        except Exception as e:
-            return False, f"卸载时清理文件失败: {e}"
+            for f in json.loads(manifest.read_text()):
+                p = Path(f)
+                if p.exists() and p.is_file():
+                    try: p.resolve().relative_to(MODS_PATH.resolve())
+                    except: continue
+                    p.unlink()
+            manifest.unlink()
+        except: pass
+    (VERSIONS_PATH / f"{mod_name}.txt").unlink(missing_ok=True)
+    return True, "OK"
 
-    version_file = VERSIONS_PATH / f"{mod_name}.txt"
-    if version_file.exists():
-        version_file.unlink()
+# ==================== 模组包 ====================
+def install_modpack(modpack, source_index):
+    txt_url = modpack.get("Link")
+    if not txt_url: return False, "No link"
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp: tmp_path = tmp.name
+    try:
+        r = requests.get(txt_url, timeout=30)
+        if r.status_code != 200: return False, "Failed to download list"
+        with open(tmp_path, "wb") as f: f.write(r.content)
+        
+        with open(tmp_path, "r", encoding="utf-8") as f:
+            files = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        
+        all_mods, _ = load_data_from_source(MODLIST_SOURCES, source_index)
+        installed = get_installed_mods()
+        results = []
+        
+        for fn in files:
+            mod = next((m for m in all_mods if m.get("FileName") == fn), None)
+            if not mod: mod = next((m for m in all_mods if get_normalized_filename(m.get("FileName")) == get_normalized_filename(fn)), None)
+            
+            if not mod: results.append(f"❌ {fn}: 未找到"); continue
+            
+            mod_name = mod.get("Name", fn)
+            if mod_name in installed:
+                results.append(f"⏭️ {mod_name}: 已安装"); continue
+            
+            ok, msg = install_mod(mod, installed)
+            if ok: 
+                installed[mod_name] = msg # msg is version
+                results.append(f"✅ {mod_name}: 安装成功")
+            else: results.append(f"❌ {mod_name}: {msg}")
+        
+        return True, results
+    except Exception as e:
+        return False, str(e)
+    finally:
+        if os.path.exists(tmp_path): os.unlink(tmp_path)
 
-    if not dll_deleted:
-        # 如果没有找到 DLL 文件，可能模组未安装或已经手动删除，视为成功
-        return True, "未找到对应的 DLL 文件（可能已被删除）"
-    return True, "卸载成功（仅删除 DLL 文件）"
-
-# ==================== API 路由 ====================
+# ==================== API ====================
 @app.route("/")
 def index():
-    # 获取语言参数，默认为中文
     lang = request.args.get("lang", "zh")
-    if lang not in ["zh", "en"]:
-        lang = "zh"
-    
-    # 加载翻译
-    translations = load_translations(lang)
-    
-    return render_template("index.html", lang=lang, translations=translations)
+    return render_template("index.html", translations=load_translations(lang))
 
 @app.route("/static/<path:filename>")
-def serve_static(filename):
-    return send_from_directory(get_resource_path("static"), filename)
+def serve_static(filename): return send_from_directory(get_resource_path("static"), filename)
 
 @app.route("/api/sources")
-def get_sources():
-    return jsonify([{"name": s["name"], "index": i} for i, s in enumerate(MODLIST_SOURCES)])
+def get_sources(): return jsonify([{"name": s["name"], "index": i} for i, s in enumerate(MODLIST_SOURCES)])
 
-@app.route("/api/mods", methods=["GET"])
+@app.route("/api/mods")
 def get_mods():
-    source_index = request.args.get("source", 0, type=int)
-    strict = request.args.get("strict", "false").lower() == "true"
-    mods, active_index = load_modlist(source_index, strict)
+    source_idx = request.args.get("source", 0, type=int)
+    strict = request.args.get("strict", "false") == "true"
+    mods, active_idx = load_data_from_source(MODLIST_SOURCES, source_idx, strict=strict)
     installed = get_installed_mods()
-    
-    # 统计缺少文件名的模组
-    missing_filename_count = 0
-    missing_name_count = 0
-    
-    for i, mod in enumerate(mods):
-        # 确保Name字段存在
-        if "Name" not in mod or not mod["Name"]:
-            missing_name_count += 1
-            # 尝试从FileName或Link生成Name
-            if "FileName" in mod and mod["FileName"]:
-                mod["Name"] = mod["FileName"].replace('.dll', '').replace('.DLL', '')
-                logger.warning(f"模组索引 {i} 缺少Name字段，从FileName生成: {mod['Name']}")
-            elif "Link" in mod and mod["Link"]:
-                import os
-                filename = os.path.basename(mod["Link"])
-                mod["Name"] = filename.replace('.dll', '').replace('.DLL', '')
-                logger.warning(f"模组索引 {i} 缺少Name字段，从Link生成: {mod['Name']}")
-            else:
-                mod["Name"] = f"未知模组_{i}"
-                logger.error(f"模组索引 {i} 缺少所有必要字段，无法生成有效名称")
-        
-        # 确保FileName字段存在，如果没有则尝试从Link提取或使用Name
-        original_filename = mod.get("FileName", "")
-        if not original_filename or original_filename.strip() == "":
-            missing_filename_count += 1
-            if "Link" in mod and mod["Link"]:
-                # 从Link中提取文件名
-                import os
-                mod["FileName"] = os.path.basename(mod["Link"])
-                logger.info(f"模组 '{mod.get('Name', '未知')}' 缺少文件名，从Link提取: {mod['FileName']}")
-            elif "Name" in mod:
-                mod["FileName"] = f"{mod['Name']}.dll"
-                logger.info(f"模组 '{mod['Name']}' 缺少文件名，使用Name生成: {mod['FileName']}")
-            else:
-                mod["FileName"] = "unknown.dll"
-                logger.warning(f"模组缺少必要字段，无法生成文件名: {mod}")
-        elif original_filename != mod["FileName"]:
-            logger.debug(f"模组 '{mod.get('Name', '未知')}' 文件名已修正: {original_filename} -> {mod['FileName']}")
-        
-        mod_name = mod.get("Name", mod["FileName"])
-        mod["is_installed"] = mod_name in installed
-        mod["installed_version"] = installed.get(mod_name, "")
-    
-    if missing_filename_count > 0 or missing_name_count > 0:
-        logger.info(f"API返回 {len(mods)} 个模组，其中 {missing_filename_count} 个缺少文件名，{missing_name_count} 个缺少名称，已自动修复")
-    
-    return jsonify({"mods": mods, "active_source": active_index, "strict": strict})
+    for m in mods:
+        mn = m.get("Name", m.get("FileName"))
+        m["is_installed"] = mn in installed
+        m["installed_version"] = installed.get(mn, "")
+    return jsonify({"mods": mods, "active_source": active_idx})
 
-@app.route("/api/modpacks", methods=["GET"])
-def get_modpacks_route():
-    source_index = request.args.get("source", 0, type=int)
-    strict = request.args.get("strict", "false").lower() == "true"
-    modpacks, active_index = load_modpacks(source_index, strict)
-    return jsonify({"modpacks": modpacks, "active_source": active_index, "strict": strict})
+@app.route("/api/modpacks")
+def get_modpacks():
+    source_idx = request.args.get("source", 0, type=int)
+    packs, active_idx = load_data_from_source(MODPACK_SOURCES, source_idx, "Mods")
+    return jsonify({"modpacks": packs, "active_source": active_idx})
 
 @app.route("/api/tasks")
 def get_tasks():
-    with task_lock:
-        # 返回所有任务（包括已完成和失败）
-        return jsonify(download_tasks.copy())
+    with task_lock: return jsonify(download_tasks.copy())
 
 @app.route("/api/install", methods=["POST"])
-def install():
-    data = request.get_json()
-    filename = data.get("filename")
-    if not filename:
-        return jsonify({"error": "缺少文件名"}), 400
-    source_index = data.get("source", 0)
-    strict = data.get("strict", False)
-
-    mod = find_mod_by_filename(filename, source_index, strict)
-    if not mod:
-        return jsonify({"error": "模组不存在"}), 404
-
-    installed = get_installed_mods()
-    mod_name = mod.get("Name", filename)
-    if mod_name in installed:
-        return jsonify({"error": "模组已安装"}), 400
-
-    installed_copy = installed.copy()
-    result, err = install_with_deps(mod, installed_copy, source_index, strict)
-    if err:
-        return jsonify({"error": err}), 500
-    return jsonify({"success": True, "installed": result})
+def api_install():
+    data = request.json
+    mods, _ = load_data_from_source(MODLIST_SOURCES, data.get("source", 0))
+    mod = next((m for m in mods if m.get("FileName") == data.get("filename")), None)
+    if not mod: return jsonify({"error": "Not found"}), 404
+    
+    ok, msg = install_mod(mod, get_installed_mods())
+    # 返回新版本号或错误信息
+    if ok: return jsonify({"success": True, "new_version": msg})
+    else: return jsonify({"error": msg}), 500
 
 @app.route("/api/uninstall", methods=["POST"])
-def uninstall():
-    data = request.get_json()
-    mod_name = data.get("name")
-    if not mod_name:
-        return jsonify({"error": "缺少模组名"}), 400
-
-    ok, msg = uninstall_mod(mod_name)
-    if not ok:
-        return jsonify({"error": msg}), 400
-    return jsonify({"success": True, "message": msg})
+def api_uninstall():
+    name = request.json.get("name")
+    ok, msg = uninstall_mod(name)
+    return jsonify({"success": ok}) if ok else jsonify({"error": msg}), 500
 
 @app.route("/api/update", methods=["POST"])
-def update():
-    data = request.get_json()
-    mod_name = data.get("name")
-    if not mod_name:
-        return jsonify({"error": "缺少模组名"}), 400
-    source_index = data.get("source", 0)
-    strict = data.get("strict", False)
-
-    mods, _ = load_modlist(source_index, strict)
-    target_mod = None
-    for mod in mods:
-        if mod.get("Name") == mod_name:
-            target_mod = mod
-            break
-    if not target_mod:
-        return jsonify({"error": "模组不存在"}), 404
-
-    ok, msg = uninstall_mod(mod_name)
-    if not ok:
-        return jsonify({"error": f"卸载失败: {msg}"}), 500
-
-    installed = get_installed_mods()
-    installed_copy = installed.copy()
-    result, err = install_with_deps(target_mod, installed_copy, source_index, strict)
-    if err:
-        return jsonify({"error": f"更新失败: {err}"}), 500
-    return jsonify({"success": True, "message": "更新成功"})
+def api_update():
+    name = request.json.get("name")
+    source = request.json.get("source", 0)
+    mods, _ = load_data_from_source(MODLIST_SOURCES, source)
+    mod = next((m for m in mods if m.get("Name") == name), None)
+    if not mod: return jsonify({"error": "Not found"}), 404
+    
+    uninstall_mod(name)
+    ok, msg = install_mod(mod, get_installed_mods())
+    if ok: return jsonify({"success": True, "new_version": msg})
+    return jsonify({"error": msg}), 500
 
 @app.route("/api/install-modpack", methods=["POST"])
-def install_modpack_route():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "缺少模组包数据"}), 400
+def api_install_modpack():
+    data = request.json
+    ok, res = install_modpack(data, data.get("source", 0))
+    if ok: return jsonify({"success": True, "results": res})
+    return jsonify({"error": res}), 500
 
-    ok, result = install_modpack(data)
-    if not ok:
-        return jsonify({"error": result}), 500
-    return jsonify({"success": True, "results": result})
-
-@app.route("/api/license")
-def get_license():
-    """获取许可证文件内容"""
-    try:
-        license_path = BASE_DIR / "LICENSE_AND_NOTICE.md"
-        logger.info(f"尝试加载许可证文件，路径: {license_path}")
-        logger.info(f"文件存在: {license_path.exists()}")
-        
-        if license_path.exists():
-            content = license_path.read_text(encoding="utf-8")
-            logger.info(f"成功读取许可证文件，长度: {len(content)} 字符")
-            return content, 200, {"Content-Type": "text/plain; charset=utf-8"}
-        else:
-            logger.error(f"许可证文件不存在: {license_path}")
-            # 尝试其他可能的位置
-            alt_paths = [
-                Path("LICENSE_AND_NOTICE.md"),
-                Path(get_resource_path("LICENSE_AND_NOTICE.md")),
-                Path.cwd() / "LICENSE_AND_NOTICE.md",
-            ]
-            for alt_path in alt_paths:
-                logger.info(f"尝试备用路径: {alt_path}, 存在: {alt_path.exists()}")
-                if alt_path.exists():
-                    content = alt_path.read_text(encoding="utf-8")
-                    logger.info(f"从备用路径读取成功: {alt_path}")
-                    return content, 200, {"Content-Type": "text/plain; charset=utf-8"}
-            
-            return "许可证文件不存在", 404
-    except Exception as e:
-        logger.error(f"读取许可证文件失败: {e}")
-        return f"无法读取许可证文件: {str(e)}", 500
+@app.route("/api/config", methods=["GET", "POST"])
+def api_config():
+    if request.method == "POST":
+        save_config(request.json)
+        return jsonify({"success": True})
+    return jsonify(load_config())
 
 @app.route("/api/launch-exe", methods=["POST"])
 def launch_exe():
-    """启动游戏EXE"""
-    data = request.get_json()
-    exe_path = data.get("path")
-    
-    if not exe_path:
-        return jsonify({"error": "缺少EXE路径"}), 400
-    
-    exe_path_obj = Path(exe_path)
-    if not exe_path_obj.exists():
-        return jsonify({"error": f"EXE文件不存在: {exe_path}"}), 400
-    
+    path = Path(request.json.get("path", ""))
+    if not path.exists(): return jsonify({"error": "File not found"}), 404
     try:
-        import subprocess
-        # 启动游戏EXE
-        if exe_path_obj.suffix.lower() == '.exe':
-            subprocess.Popen([str(exe_path_obj)], cwd=exe_path_obj.parent)
-        else:
-            # 对于其他可执行文件
-            subprocess.Popen([str(exe_path_obj)], shell=True, cwd=exe_path_obj.parent)
-        
-        logger.info(f"已启动游戏EXE: {exe_path}")
-        return jsonify({"success": True, "message": "游戏已启动"})
-    except Exception as e:
-        logger.error(f"启动游戏EXE失败: {e}")
-        return jsonify({"error": f"启动失败: {str(e)}"}), 500
-
-@app.route("/api/browse-exe", methods=["POST"])
-def browse_exe():
-    """打开文件对话框选择EXE文件（使用线程避免阻塞）"""
-    import threading
-    import queue
-    
-    def tkinter_file_dialog():
-        """使用tkinter打开文件对话框"""
-        try:
-            import tkinter as tk
-            from tkinter import filedialog
-            
-            root = tk.Tk()
-            root.withdraw()  # 隐藏主窗口
-            root.attributes('-topmost', True)  # 置顶
-            
-            file_path = filedialog.askopenfilename(
-                title="选择游戏EXE文件",
-                filetypes=[("可执行文件", "*.exe"), ("所有文件", "*.*")]
-            )
-            
-            root.destroy()
-            return file_path
-        except Exception as e:
-            logger.error(f"tkinter文件对话框失败: {e}")
-            return None
-    
-    def powershell_file_dialog():
-        """使用PowerShell打开文件对话框"""
-        try:
-            import subprocess
-            import platform
-            
-            if platform.system() != "Windows":
-                return None
-            
-            # 使用PowerShell的OpenFileDialog
-            ps_script = """
-            Add-Type -AssemblyName System.Windows.Forms
-            $dialog = New-Object System.Windows.Forms.OpenFileDialog
-            $dialog.Filter = '可执行文件 (*.exe)|*.exe|所有文件 (*.*)|*.*'
-            $dialog.Title = '选择游戏EXE文件'
-            $dialog.ShowDialog() | Out-Null
-            if ($dialog.FileName) {
-                $dialog.FileName
-            }
-            """
-            # 使用更短的超时，避免长时间等待
-            result = subprocess.run(["powershell", "-Command", ps_script], 
-                                  capture_output=True, text=True, timeout=15)
-            if result.returncode == 0 and result.stdout.strip():
-                return result.stdout.strip()
-        except subprocess.TimeoutExpired:
-            logger.warning("PowerShell文件选择器超时")
-        except Exception as e:
-            logger.error(f"PowerShell文件对话框失败: {e}")
-        
-        return None
-    
-    try:
-        # 先尝试tkinter
-        try:
-            import tkinter as tk
-            from tkinter import filedialog
-            use_tkinter = True
-        except ImportError:
-            use_tkinter = False
-        
-        file_path = None
-        
-        if use_tkinter:
-            # 在线程中运行tkinter对话框
-            result_queue = queue.Queue()
-            thread = threading.Thread(target=lambda q: q.put(tkinter_file_dialog()), args=(result_queue,))
-            thread.daemon = True
-            thread.start()
-            thread.join(timeout=20)  # 20秒超时
-            
-            if thread.is_alive():
-                logger.warning("tkinter文件选择器超时")
-            else:
-                file_path = result_queue.get() if not result_queue.empty() else None
-        
-        # 如果tkinter失败或不可用，尝试PowerShell
-        if not file_path:
-            file_path = powershell_file_dialog()
-        
-        if file_path:
-            logger.info(f"用户选择的文件路径: {file_path}")
-            return jsonify({"success": True, "path": file_path})
-        else:
-            logger.warning("文件选择器未返回有效路径")
-            return jsonify({"error": "未选择文件或选择超时，请手动输入路径"}), 400
-            
-    except Exception as e:
-        logger.error(f"打开文件对话框失败: {e}")
-        return jsonify({"error": f"文件选择失败: {str(e)}，请手动输入路径"}), 500
+        subprocess.Popen([str(path)], cwd=path.parent)
+        return jsonify({"success": True})
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
 @app.route("/api/install-patcher", methods=["POST"])
 def install_patcher():
-    """安装模组加载器（TLDPatcher）"""
+    p = BASE_DIR / "TLDPatcher" / "TLDPatcher.exe"
+    if not p.exists(): return jsonify({"error": "TLDPatcher not found"}), 404
     try:
-        # 调试：输出当前BASE_DIR路径
-        logger.info(f"当前BASE_DIR路径: {BASE_DIR}")
-        logger.info(f"当前工作目录: {os.getcwd()}")
-        
-        patcher_path = BASE_DIR / "TLDPatcher" / "TLDPatcher.exe"
-        logger.info(f"检查路径1: {patcher_path}")
-        
-        if not patcher_path.exists():
-            # 如果TLDPatcher目录不存在，检查exe同级目录
-            patcher_path = BASE_DIR / "TLDPatcher.exe"
-            logger.info(f"检查路径2: {patcher_path}")
-            if not patcher_path.exists():
-                # 尝试相对路径
-                patcher_path = Path("TLDPatcher") / "TLDPatcher.exe"
-                logger.info(f"检查路径3: {patcher_path}")
-                if not patcher_path.exists():
-                    patcher_path = Path("TLDPatcher.exe")
-                    logger.info(f"检查路径4: {patcher_path}")
-                    if not patcher_path.exists():
-                        return jsonify({"error": f"找不到TLDPatcher.exe文件。已检查路径：\n1. {BASE_DIR / 'TLDPatcher' / 'TLDPatcher.exe'}\n2. {BASE_DIR / 'TLDPatcher.exe'}\n3. TLDPatcher/TLDPatcher.exe\n4. TLDPatcher.exe"}), 404
-        
-        logger.info(f"找到TLDPatcher，路径: {patcher_path}")
-        import subprocess
-        # 启动TLDPatcher
-        subprocess.Popen([str(patcher_path)], cwd=patcher_path.parent)
-        
-        logger.info(f"已启动模组加载器: {patcher_path}")
-        return jsonify({"success": True, "message": "模组加载器已启动"})
-    except Exception as e:
-        logger.error(f"启动模组加载器失败: {e}")
-        return jsonify({"error": f"启动失败: {str(e)}"}), 500
+        subprocess.Popen([str(p)], cwd=p.parent)
+        return jsonify({"success": True})
+    except Exception as e: return jsonify({"error": str(e)}), 500
+
+@app.route("/api/browse-exe", methods=["POST"])
+def browse_exe():
+    if sys.platform != 'win32': return jsonify({"error": "Only Windows supported"}), 400
+    ps_script = """
+    Add-Type -AssemblyName System.Windows.Forms
+    $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{
+        Filter = 'Executable Files (*.exe)|*.exe'; Title = 'Select Game EXE'
+    }
+    if ($FileBrowser.ShowDialog() -eq 'OK') { $FileBrowser.FileName }
+    """
+    try:
+        result = subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, timeout=20)
+        path = result.stdout.strip()
+        if path and os.path.exists(path): return jsonify({"success": True, "path": path})
+        return jsonify({"error": "No file selected"}), 400
+    except Exception as e: return jsonify({"error": str(e)}), 500
+
+@app.route("/api/license")
+def get_license():
+    try:
+        f = BASE_DIR / "LICENSE_AND_NOTICE.md"
+        return f.read_text(encoding="utf-8") if f.exists() else "Not found", 200
+    except: return "Error", 500
 
 @app.route("/api/translations")
-def get_translations():
-    """获取翻译文本"""
-    lang = request.args.get("lang", "zh")
-    if lang not in ["zh", "en"]:
-        lang = "zh"
-    
-    translations = load_translations(lang)
-    return jsonify({"lang": lang, "translations": translations})
-
-@app.errorhandler(Exception)
-def handle_exception(e):
-    logger.exception("未捕获的异常")
-    return jsonify({"error": "服务器内部错误"}), 500
-
-def open_browser():
-    """启动后自动打开浏览器"""
-    import time
-    import threading
-    import webbrowser
-    
-    def _open():
-        time.sleep(2)  # 等待服务器启动
-        try:
-            webbrowser.open("http://127.0.0.1:5000")
-            logger.info("已自动打开浏览器")
-        except Exception as e:
-            logger.error(f"自动打开浏览器失败: {e}")
-    
-    thread = threading.Thread(target=_open)
-    thread.daemon = True
-    thread.start()
-    logger.info("已启动自动打开浏览器线程")
+def api_translations():
+    return jsonify(load_translations(request.args.get("lang", "zh")))
 
 if __name__ == "__main__":
-    # 自动打开浏览器
-    open_browser()
+    import webbrowser
+    threading.Thread(target=lambda: (time.sleep(1), webbrowser.open("http://127.0.0.1:5000")), daemon=True).start()
     app.run(debug=False, threaded=True)

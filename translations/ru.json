@@ -1,0 +1,22 @@
+{
+    "app_title": "Установщик модов TLD",
+    "browse_mods": "📦 Обзор модов",
+    "modpacks": "📚 Сборки",
+    "installed_mods": "🔧 Установленные",
+    "settings": "⚙️ Настройки",
+    "about": "ℹ️ О программе",
+    "launch_game": "🎮 Запустить игру",
+    "install_patcher": "🔧 Установить патч",
+    "cheat_1000km": "📏 Чит на 1000 км",
+    "search_placeholder": "Поиск мода...",
+    "install": "Установить",
+    "uninstall": "Удалить",
+    "update": "Обновить",
+    "installed": "Установлено",
+    "author": "Автор:",
+    "version": "Версия:",
+    "loading": "Загрузка...",
+    "toast_install_success": "успешно установлен",
+    "confirm_uninstall": "Удалить {name}?",
+    "error_no_exe_path": "Пожалуйста, укажите путь к EXE"
+}
