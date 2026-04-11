@@ -11,6 +11,7 @@ import sys
 import ctypes
 import subprocess
 from pathlib import Path
+from urllib.parse import urlparse
 from flask import Flask, jsonify, render_template, request, send_from_directory
 
 # 控制台设置
@@ -21,10 +22,11 @@ if sys.platform == 'win32':
     except: pass
 
 print("""
-\x1b-------------------------------
-| TLD 网页模组安装器    |
-| The Long Drive Mod Installer |
--------------------------------\x1b
+-------------------------------
+| TLD 网页模组安装器          |
+| The Long Drive Mod Installer|
+| QQ群:661726941              |
+-------------------------------
 """)
 
 import requests
@@ -311,7 +313,6 @@ def api_install():
     if not mod: return jsonify({"error": "Not found"}), 404
     
     ok, msg = install_mod(mod, get_installed_mods())
-    # 返回新版本号或错误信息
     if ok: return jsonify({"success": True, "new_version": msg})
     else: return jsonify({"error": msg}), 500
 
@@ -368,20 +369,42 @@ def install_patcher():
 
 @app.route("/api/browse-exe", methods=["POST"])
 def browse_exe():
-    if sys.platform != 'win32': return jsonify({"error": "Only Windows supported"}), 400
+    """使用 PowerShell 打开文件选择对话框 - 修复崩溃问题"""
+    if sys.platform != 'win32':
+        return jsonify({"error": "Only Windows supported"}), 400
+    
+    # 增强的 PowerShell 脚本
     ps_script = """
     Add-Type -AssemblyName System.Windows.Forms
     $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{
-        Filter = 'Executable Files (*.exe)|*.exe'; Title = 'Select Game EXE'
+        Filter = 'Executable Files (*.exe)|*.exe'; 
+        Title = 'Select Game EXE';
+        RestoreDirectory = $true
     }
     if ($FileBrowser.ShowDialog() -eq 'OK') { $FileBrowser.FileName }
     """
+    
+    # 使用 subprocess 调用，增加超时和错误处理
     try:
-        result = subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, timeout=20)
+        # 使用 -NoProfile -ExecutionPolicy Bypass 避免策略和配置加载导致的延迟/崩溃
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_script], 
+            capture_output=True, 
+            text=True, 
+            timeout=30, # 30秒超时
+            creationflags=subprocess.CREATE_NO_WINDOW # 防止弹出黑色控制台窗口
+        )
+        
         path = result.stdout.strip()
-        if path and os.path.exists(path): return jsonify({"success": True, "path": path})
-        return jsonify({"error": "No file selected"}), 400
-    except Exception as e: return jsonify({"error": str(e)}), 500
+        if path and os.path.exists(path):
+            return jsonify({"success": True, "path": path})
+        else:
+            return jsonify({"error": "No file selected or user cancelled"}), 400
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Timeout: Dialog took too long"}), 500
+    except Exception as e:
+        logger.error(f"Browse error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/license")
 def get_license():
