@@ -20,7 +20,6 @@
             <button class="sidebar-btn primary" onclick="launchSteam()" data-i18n="launch_game">🎮 启动游戏</button>
             <button class="sidebar-btn primary" onclick="launchExe()" data-i18n="launch_exe">🚀 启动 EXE</button>
             <button class="sidebar-btn secondary" onclick="installPatcher()" data-i18n="install_patcher">🔧 安装加载器</button>
-            <!-- 新增：改1000公里按钮 -->
             <button class="sidebar-btn secondary" onclick="download1000Cheat()" data-i18n="cheat_1000km">📏 改1000公里</button>
         </div>
 
@@ -85,7 +84,6 @@
                     <button class="action-btn primary" onclick="applyTheme()" data-i18n="apply_theme">应用主题</button>
                 </div>
                 
-                <!-- 语言设置：增加自动和五大语言 -->
                 <div class="settings-section">
                     <h3 data-i18n="language_settings">🌐 语言设置</h3>
                     <div class="setting-row">
@@ -116,7 +114,9 @@
             <div id="about-tab" class="tab-content">
                  <div class="settings-section">
                     <h3 data-i18n="about_title">ℹ️ 关于本项目</h3>
-                    <p style="color:#ccc; line-height:1.6;">TLD Mod Installer 由 TLD Mod Community 开发。</p>
+                    <p style="color:#ccc; line-height:1.6;">TLD Mod Installer 由yiqiu开发。</p>
+                    <p style="color:#ccc; line-height:1.6;">联系方式qq群661726941。</p>
+                    <p style="color:#ccc; line-height:1.6;">email: 2308534727@qq.com</p>
                     <p style="color:#4caf50; margin-top:10px;">许可证: AGPL-3.0</p>
                 </div>
                 <div class="settings-section">
@@ -127,7 +127,6 @@
         </div>
     </div>
 
-    <!-- 下载管理器：修复重复图标 -->
     <div id="download-manager" class="download-manager">
         <div class="download-header" id="download-toggle">
             <span>📥 <span data-i18n="download_tasks">任务</span> (<span id="task-count">0</span>)</span>
@@ -171,13 +170,11 @@
     async function initLanguage() {
         let lang = localStorage.getItem('lang');
         if (!lang || lang === 'auto') {
-            // 自动检测：映射浏览器语言到支持的列表
             const navLang = navigator.language.split('-')[0];
             const supported = ['zh', 'en', 'es', 'fr', 'ru', 'ar'];
             lang = supported.includes(navLang) ? navLang : 'en';
         }
         
-        // 设置下拉菜单显示
         const savedPref = localStorage.getItem('lang') || 'auto';
         document.getElementById('lang-select').value = savedPref;
         
@@ -211,11 +208,7 @@
 
     async function changeLanguage(val) {
         localStorage.setItem('lang', val);
-        // 如果选自动，刷新页面重新检测，或直接逻辑判断
-        if (val === 'auto') {
-            location.reload(); 
-            return;
-        }
+        if (val === 'auto') { location.reload(); return; }
         await loadTranslations(val);
         applyTranslations();
         filterMods(); loadInstalled(currentManageSource); loadModpacks(currentModpackSource);
@@ -240,7 +233,11 @@
     const escapeHtml = (s) => s ? s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;") : '';
 
     // ==================== 功能函数 ====================
-    function launchSteam() { showToast('尝试启动Steam...', 'info'); }
+    // 修复：Steam 启动直接使用协议链接
+    function launchSteam() { 
+        window.location.href = 'steam://rungameid/1017180';
+    }
+    
     async function launchExe() {
         const path = document.getElementById('exe-path').value;
         if(!path) { showToast(t('error_no_exe_path', '请配置路径'), 'error'); return; }
@@ -254,7 +251,6 @@
         if(data.success) showToast(t('toast_patcher_launched', '加载器已启动'), 'success'); else showToast(`${t('error_no_filename', '失败')}: ${data.error}`, 'error');
     }
     
-    // 新功能：改1000公里
     function download1000Cheat() {
         const url = "https://github.com/32bitx64bit/Thelongdrive-distance-cheat/releases/download/download/the-long-drive-distance-cheat.reg";
         window.open(url, '_blank');
@@ -268,7 +264,7 @@
             document.getElementById('exe-path').value = data.path;
             showToast(t('toast_select_path', '路径已选择'), 'success');
         } else {
-            showToast(t('error_file_select_failed', '未选择文件'), 'info');
+            showToast(data.error || t('error_file_select_failed', '未选择文件'), 'error');
         }
     }
     
@@ -358,9 +354,17 @@
             const result = await res.json();
             if (res.ok) {
                 showToast(`✅ ${data.Name} ${t('toast_uninstall_success', '已卸载')}`, 'success');
+                
                 const inManageTab = document.getElementById('manage-tab').classList.contains('active');
-                if (inManageTab) card.remove();
-                else updateCardState(card, data, false);
+                if (inManageTab) {
+                    card.remove(); // 已安装页：移除卡片
+                    // 如果没有卡片了，显示提示
+                    if(document.getElementById('installed-list').querySelectorAll('.mod-card').length === 0) {
+                        document.getElementById('installed-list').innerHTML = `<div class="info">${t('no_mods_found', '未安装')}</div>`;
+                    }
+                } else {
+                    updateCardState(card, data, false); // 浏览页：更新按钮状态
+                }
             } else {
                 showToast(`❌ ${result.error}`, 'error');
                 btn.textContent = t('uninstall', '卸载');
@@ -376,9 +380,15 @@
             const result = await res.json();
             if (res.ok) {
                 showToast(`✅ ${t('toast_update_success', '更新成功')}`, 'success');
+                // 核心：更新成功后修改卡片上的文字和状态
                 updateCardState(card, data, true, result.new_version);
+                
+                // 强制更新“最新”按钮状态
                 const updateBtn = card.querySelector('.update-manage');
-                if(updateBtn) { updateBtn.disabled = true; updateBtn.textContent = t('latest', '最新'); }
+                if(updateBtn) { 
+                    updateBtn.disabled = true; 
+                    updateBtn.textContent = t('latest', '最新'); 
+                }
             } else {
                 showToast(`❌ Failed: ${result.error}`, 'error');
                 btn.textContent = t('update', '更新'); btn.disabled = false;
@@ -393,10 +403,13 @@
             const res = await fetch('/api/install-modpack', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ ...data, source: currentModpackSource }) });
             const result = await res.json();
             if (res.ok) {
+                // 核心：显示结果
                 showModpackResult(result.results);
                 loadMods(currentBrowseSource);
                 loadInstalled(currentManageSource);
-            } else { showToast(`Failed: ${result.error}`, 'error'); }
+            } else { 
+                showToast(`Failed: ${result.error}`, 'error'); 
+            }
         } catch(e) { showToast('Network error', 'error'); }
         btn.disabled = false; btn.textContent = `📦 ${t('install', '安装')}`;
     }
@@ -405,21 +418,28 @@
         if (!card) return;
         const actionsDiv = card.querySelector('.mod-actions');
         if (!actionsDiv) return;
+        
         const name = data.Name;
+        
+        // 更新按钮
         if (isInstalled) {
             actionsDiv.innerHTML = `<button class="uninstall">${t('uninstall', '卸载')}</button>`;
-            const modIndex = allMods.findIndex(m => m.Name === name);
-            if (modIndex > -1) {
-                allMods[modIndex].is_installed = true;
-                if(newVersion) allMods[modIndex].installed_version = newVersion;
-            }
         } else {
             actionsDiv.innerHTML = `<button class="install">${t('install', '安装')}</button>`;
-            const modIndex = allMods.findIndex(m => m.Name === name);
-            if (modIndex > -1) allMods[modIndex].is_installed = false;
         }
+        
+        // 更新版本号显示 (如果提供了新版本号)
         const versionP = card.querySelector('.version');
-        if(versionP && newVersion) versionP.innerHTML = `${t('installed', '已装')}: ${escapeHtml(newVersion)} | ${t('latest', '最新')}: ${escapeHtml(data.Version || '?')}`;
+        if (versionP && newVersion) {
+            versionP.innerHTML = `${t('installed', '已装')}: ${escapeHtml(newVersion)} | ${t('latest', '最新')}: ${escapeHtml(data.Version || '?')}`;
+        }
+        
+        // 更新内存数据
+        const modIndex = allMods.findIndex(m => m.Name === name);
+        if (modIndex > -1) {
+            allMods[modIndex].is_installed = isInstalled;
+            if(newVersion) allMods[modIndex].installed_version = newVersion;
+        }
     }
 
     // ==================== 数据加载 ====================
@@ -559,7 +579,9 @@
     
     function showModpackResult(results) {
         const modal = document.getElementById('modpack-result-modal');
-        document.getElementById('modpack-result-list').innerHTML = results.map(r => `<div>${escapeHtml(r)}</div>`).join('');
+        // 确保 results 是数组
+        const htmlContent = Array.isArray(results) ? results.map(r => `<div>${escapeHtml(r)}</div>`).join('') : "完成";
+        document.getElementById('modpack-result-list').innerHTML = htmlContent;
         modal.style.display = 'block';
     }
     document.getElementById('close-result-btn').onclick = () => document.getElementById('modpack-result-modal').style.display = 'none';
