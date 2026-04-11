@@ -21,10 +21,10 @@ if sys.platform == 'win32':
     except: pass
 
 print("""
-\x1b-------------------------------+
+\x1b-------------------------------
 | TLD 网页模组安装器    |
 | The Long Drive Mod Installer |
-+-------------------------------+\x1b
+-------------------------------\x1b
 """)
 
 import requests
