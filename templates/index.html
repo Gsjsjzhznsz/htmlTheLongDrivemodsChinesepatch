@@ -61,7 +61,18 @@
             </div>
 
             <div id="modpacks-tab" class="tab-content">
-                <div class="top-bar"><div class="source-selector"><label data-i18n="data_source">📡 源:</label><select id="modpack-source-select"></select></div></div>
+                <div class="top-bar">
+                    <div class="source-selector">
+                        <label data-i18n="data_source">📡 源:</label>
+                        <select id="modpack-source-select"></select>
+                    </div>
+                    <!-- 新增导入导出按钮 -->
+                    <div class="view-toggle">
+                        <button class="view-btn" onclick="exportModpack()">📤 导出</button>
+                        <button class="view-btn" onclick="document.getElementById('import-file').click()">📥 导入</button>
+                        <input type="file" id="import-file" hidden accept=".txt" onchange="importModpack(this)">
+                    </div>
+                </div>
                 <div id="modpack-list" class="mod-grid"></div>
             </div>
 
@@ -111,6 +122,7 @@
                 </div>
             </div>
             
+            <!-- 同步用户修改：关于页面内容 -->
             <div id="about-tab" class="tab-content">
                  <div class="settings-section">
                     <h3 data-i18n="about_title">ℹ️ 关于本项目</h3>
@@ -233,10 +245,7 @@
     const escapeHtml = (s) => s ? s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;") : '';
 
     // ==================== 功能函数 ====================
-    // 修复：Steam 启动直接使用协议链接
-    function launchSteam() { 
-        window.location.href = 'steam://rungameid/1017180';
-    }
+    function launchSteam() { window.location.href = 'steam://rungameid/1017180'; }
     
     async function launchExe() {
         const path = document.getElementById('exe-path').value;
@@ -266,6 +275,38 @@
         } else {
             showToast(data.error || t('error_file_select_failed', '未选择文件'), 'error');
         }
+    }
+
+    // 新增：导出模组包
+    function exportModpack() {
+        window.location.href = '/api/export-modpack';
+        showToast('正在生成模组列表...', 'info');
+    }
+
+    // 新增：导入模组包
+    async function importModpack(input) {
+        if (input.files.length === 0) return;
+        const file = input.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('source', currentModpackSource); // 传递当前源索引
+
+        showToast('正在读取文件并安装...', 'info');
+        
+        try {
+            const res = await fetch('/api/import-modpack', { method: 'POST', body: formData });
+            const result = await res.json();
+            if (res.ok) {
+                showModpackResult(result.results);
+                loadMods(currentBrowseSource);
+                loadInstalled(currentManageSource);
+            } else {
+                showToast(`Failed: ${result.error}`, 'error');
+            }
+        } catch(e) {
+            showToast('Network error', 'error');
+        }
+        input.value = ''; // 清空以便重复选择同一文件
     }
     
     function applyTheme() {
@@ -350,20 +391,19 @@
         if (!confirm(t('confirm_uninstall', '确定卸载 {name} 吗?', {name: data.Name}))) return;
         btn.disabled = true; btn.textContent = t('loading', '卸载中...');
         try {
-            const res = await fetch('/api/uninstall', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name: data.Name }) });
+            const res = await fetch('/api/uninstall', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: data.Name }) });
             const result = await res.json();
             if (res.ok) {
                 showToast(`✅ ${data.Name} ${t('toast_uninstall_success', '已卸载')}`, 'success');
                 
                 const inManageTab = document.getElementById('manage-tab').classList.contains('active');
                 if (inManageTab) {
-                    card.remove(); // 已安装页：移除卡片
-                    // 如果没有卡片了，显示提示
+                    card.remove();
                     if(document.getElementById('installed-list').querySelectorAll('.mod-card').length === 0) {
                         document.getElementById('installed-list').innerHTML = `<div class="info">${t('no_mods_found', '未安装')}</div>`;
                     }
                 } else {
-                    updateCardState(card, data, false); // 浏览页：更新按钮状态
+                    updateCardState(card, data, false);
                 }
             } else {
                 showToast(`❌ ${result.error}`, 'error');
@@ -376,19 +416,13 @@
     async function updateMod(btn, data, card) {
         btn.disabled = true; btn.textContent = t('loading', '更新中...');
         try {
-            const res = await fetch('/api/update', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name: data.Name, source: currentManageSource }) });
+            const res = await fetch('/api/update', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: data.Name, source: currentManageSource }) });
             const result = await res.json();
             if (res.ok) {
                 showToast(`✅ ${t('toast_update_success', '更新成功')}`, 'success');
-                // 核心：更新成功后修改卡片上的文字和状态
                 updateCardState(card, data, true, result.new_version);
-                
-                // 强制更新“最新”按钮状态
                 const updateBtn = card.querySelector('.update-manage');
-                if(updateBtn) { 
-                    updateBtn.disabled = true; 
-                    updateBtn.textContent = t('latest', '最新'); 
-                }
+                if(updateBtn) { updateBtn.disabled = true; updateBtn.textContent = t('latest', '最新'); }
             } else {
                 showToast(`❌ Failed: ${result.error}`, 'error');
                 btn.textContent = t('update', '更新'); btn.disabled = false;
@@ -400,16 +434,13 @@
         if (!confirm(t('confirm_modpack_install', '确定安装模组包 {name} 吗?', {name: data.Name}))) return;
         btn.disabled = true; btn.textContent = t('loading', '安装中...');
         try {
-            const res = await fetch('/api/install-modpack', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ ...data, source: currentModpackSource }) });
+            const res = await fetch('/api/install-modpack', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ...data, source: currentModpackSource }) });
             const result = await res.json();
             if (res.ok) {
-                // 核心：显示结果
                 showModpackResult(result.results);
                 loadMods(currentBrowseSource);
                 loadInstalled(currentManageSource);
-            } else { 
-                showToast(`Failed: ${result.error}`, 'error'); 
-            }
+            } else { showToast(`Failed: ${result.error}`, 'error'); }
         } catch(e) { showToast('Network error', 'error'); }
         btn.disabled = false; btn.textContent = `📦 ${t('install', '安装')}`;
     }
@@ -420,21 +451,17 @@
         if (!actionsDiv) return;
         
         const name = data.Name;
-        
-        // 更新按钮
         if (isInstalled) {
             actionsDiv.innerHTML = `<button class="uninstall">${t('uninstall', '卸载')}</button>`;
         } else {
             actionsDiv.innerHTML = `<button class="install">${t('install', '安装')}</button>`;
         }
         
-        // 更新版本号显示 (如果提供了新版本号)
         const versionP = card.querySelector('.version');
         if (versionP && newVersion) {
             versionP.innerHTML = `${t('installed', '已装')}: ${escapeHtml(newVersion)} | ${t('latest', '最新')}: ${escapeHtml(data.Version || '?')}`;
         }
         
-        // 更新内存数据
         const modIndex = allMods.findIndex(m => m.Name === name);
         if (modIndex > -1) {
             allMods[modIndex].is_installed = isInstalled;
@@ -579,7 +606,6 @@
     
     function showModpackResult(results) {
         const modal = document.getElementById('modpack-result-modal');
-        // 确保 results 是数组
         const htmlContent = Array.isArray(results) ? results.map(r => `<div>${escapeHtml(r)}</div>`).join('') : "完成";
         document.getElementById('modpack-result-list').innerHTML = htmlContent;
         modal.style.display = 'block';

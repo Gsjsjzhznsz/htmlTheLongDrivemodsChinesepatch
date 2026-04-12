@@ -13,7 +13,6 @@ a = Analysis(
         ('TLDPatcher', 'TLDPatcher'),
         ('LICENSE_AND_NOTICE.md', '.'),
         ('translations', 'translations'),
-        ('PACKAGING_FIXES.md', '.'),  # 新增
     ],
     hiddenimports=[
         'flask', 'jinja2', 'markupsafe', 'werkzeug',

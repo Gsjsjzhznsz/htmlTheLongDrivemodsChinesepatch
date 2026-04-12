@@ -10,9 +10,10 @@ import re
 import sys
 import ctypes
 import subprocess
+import io # 新增：用于内存文件流
 from pathlib import Path
 from urllib.parse import urlparse
-from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask import Flask, jsonify, render_template, request, send_from_directory, send_file # 新增 send_file
 
 # 控制台设置
 if sys.platform == 'win32':
@@ -22,11 +23,15 @@ if sys.platform == 'win32':
     except: pass
 
 print("""
--------------------------------
-| TLD 网页模组安装器          |
-| The Long Drive Mod Installer|
-| QQ群:661726941              |
--------------------------------
+╔════════════════════════════════════════════════╗
+║                                               ║
+║                                               ║
+║            TLD 网页模组安装器                 ║
+║         The Long Drive Mod Installer          ║
+║              QQ群:661726941                   ║
+║                                               ║
+║                                               ║
+╚════════════════════════════════════════════════╝
 """)
 
 import requests
@@ -37,6 +42,7 @@ def get_resource_path(relative_path):
     except Exception: base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+# 同步用户修改：去除颜色代码
 class ColoredFormatter(logging.Formatter):
     def format(self, record):
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
@@ -74,12 +80,14 @@ CONFIG_FILE = GAME_PATH / "installer_config.json"
 MODS_PATH.mkdir(parents=True, exist_ok=True)
 VERSIONS_PATH.mkdir(parents=True, exist_ok=True)
 
+# 同步用户修改：数据源配置
 MODLIST_SOURCES = [
     {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/modlist_3.json"},
     {"name": "极狐镜像源(中文)", "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"},
     {"name": "Local Source(english)", "url": None, "local_path": BASE_DIR / "en-modlist_3.json"},
     {"name": "本地源(中文)", "url": None, "local_path": BASE_DIR / "modlist_3.json"}
 ]
+
 MODPACK_SOURCES = [
     {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
     {"name": "极狐镜像源(中文)", "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
@@ -232,44 +240,30 @@ def uninstall_mod(mod_name):
     return True, "OK"
 
 # ==================== 模组包 ====================
-def install_modpack(modpack, source_index):
-    txt_url = modpack.get("Link")
-    if not txt_url: return False, "No link"
+def install_modpack_from_list(files, source_index):
+    """核心安装逻辑：根据文件名列表安装"""
+    all_mods, _ = load_data_from_source(MODLIST_SOURCES, source_index)
+    installed = get_installed_mods()
+    results = []
     
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp: tmp_path = tmp.name
-    try:
-        r = requests.get(txt_url, timeout=30)
-        if r.status_code != 200: return False, "Failed to download list"
-        with open(tmp_path, "wb") as f: f.write(r.content)
+    for fn in files:
+        if not fn.strip(): continue
+        mod = next((m for m in all_mods if m.get("FileName") == fn), None)
+        if not mod: mod = next((m for m in all_mods if get_normalized_filename(m.get("FileName")) == get_normalized_filename(fn)), None)
         
-        with open(tmp_path, "r", encoding="utf-8") as f:
-            files = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        if not mod: results.append(f"❌ {fn}: 未找到"); continue
         
-        all_mods, _ = load_data_from_source(MODLIST_SOURCES, source_index)
-        installed = get_installed_mods()
-        results = []
+        mod_name = mod.get("Name", fn)
+        if mod_name in installed:
+            results.append(f"⏭️ {mod_name}: 已安装"); continue
         
-        for fn in files:
-            mod = next((m for m in all_mods if m.get("FileName") == fn), None)
-            if not mod: mod = next((m for m in all_mods if get_normalized_filename(m.get("FileName")) == get_normalized_filename(fn)), None)
-            
-            if not mod: results.append(f"❌ {fn}: 未找到"); continue
-            
-            mod_name = mod.get("Name", fn)
-            if mod_name in installed:
-                results.append(f"⏭️ {mod_name}: 已安装"); continue
-            
-            ok, msg = install_mod(mod, installed)
-            if ok: 
-                installed[mod_name] = msg # msg is version
-                results.append(f"✅ {mod_name}: 安装成功")
-            else: results.append(f"❌ {mod_name}: {msg}")
-        
-        return True, results
-    except Exception as e:
-        return False, str(e)
-    finally:
-        if os.path.exists(tmp_path): os.unlink(tmp_path)
+        ok, msg = install_mod(mod, installed)
+        if ok: 
+            installed[mod_name] = msg
+            results.append(f"✅ {mod_name}: 安装成功")
+        else: results.append(f"❌ {mod_name}: {msg}")
+    
+    return results
 
 # ==================== API ====================
 @app.route("/")
@@ -338,9 +332,68 @@ def api_update():
 @app.route("/api/install-modpack", methods=["POST"])
 def api_install_modpack():
     data = request.json
-    ok, res = install_modpack(data, data.get("source", 0))
-    if ok: return jsonify({"success": True, "results": res})
-    return jsonify({"error": res}), 500
+    txt_url = data.get("Link")
+    source = data.get("source", 0)
+    
+    if not txt_url: return jsonify({"error": "No link"}), 500
+    
+    # 下载txt内容
+    try:
+        r = requests.get(txt_url, timeout=30)
+        if r.status_code != 200: return jsonify({"error": "Failed to download list"}), 500
+        files = [l.strip() for l in r.text.splitlines() if l.strip() and not l.startswith("#")]
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    results = install_modpack_from_list(files, source)
+    return jsonify({"success": True, "results": results})
+
+# 新增：导入模组包
+@app.route("/api/import-modpack", methods=["POST"])
+def api_import_modpack():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    if file:
+        try:
+            content = file.read().decode('utf-8')
+            files = [l.strip() for l in content.splitlines() if l.strip() and not l.startswith("#")]
+            # 默认使用当前浏览源作为查找源
+            source = request.form.get('source', 0, type=int)
+            results = install_modpack_from_list(files, source)
+            return jsonify({"success": True, "results": results})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+# 新增：导出模组包
+@app.route("/api/export-modpack")
+def api_export_modpack():
+    try:
+        dll_files = []
+        # 仅扫描 Mods 根目录下的 dll，符合大多数模组情况
+        # 如果需要递归扫描所有子文件夹，可以使用 os.walk
+        for item in MODS_PATH.iterdir():
+            if item.is_file() and item.suffix.lower() == '.dll':
+                dll_files.append(item.name)
+        
+        if not dll_files:
+            return jsonify({"error": "No DLL files found in Mods folder"}), 404
+
+        # 生成文本内容
+        content = "\n".join(dll_files)
+        
+        # 创建内存文件流
+        return send_file(
+            io.BytesIO(content.encode('utf-8')),
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name='my_modpack.txt'
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/config", methods=["GET", "POST"])
 def api_config():
@@ -369,42 +422,20 @@ def install_patcher():
 
 @app.route("/api/browse-exe", methods=["POST"])
 def browse_exe():
-    """使用 PowerShell 打开文件选择对话框 - 修复崩溃问题"""
-    if sys.platform != 'win32':
-        return jsonify({"error": "Only Windows supported"}), 400
-    
-    # 增强的 PowerShell 脚本
+    if sys.platform != 'win32': return jsonify({"error": "Only Windows supported"}), 400
     ps_script = """
     Add-Type -AssemblyName System.Windows.Forms
     $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{
-        Filter = 'Executable Files (*.exe)|*.exe'; 
-        Title = 'Select Game EXE';
-        RestoreDirectory = $true
+        Filter = 'Executable Files (*.exe)|*.exe'; Title = 'Select Game EXE'; RestoreDirectory = $true
     }
     if ($FileBrowser.ShowDialog() -eq 'OK') { $FileBrowser.FileName }
     """
-    
-    # 使用 subprocess 调用，增加超时和错误处理
     try:
-        # 使用 -NoProfile -ExecutionPolicy Bypass 避免策略和配置加载导致的延迟/崩溃
-        result = subprocess.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_script], 
-            capture_output=True, 
-            text=True, 
-            timeout=30, # 30秒超时
-            creationflags=subprocess.CREATE_NO_WINDOW # 防止弹出黑色控制台窗口
-        )
-        
+        result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_script], capture_output=True, text=True, timeout=30, creationflags=subprocess.CREATE_NO_WINDOW)
         path = result.stdout.strip()
-        if path and os.path.exists(path):
-            return jsonify({"success": True, "path": path})
-        else:
-            return jsonify({"error": "No file selected or user cancelled"}), 400
-    except subprocess.TimeoutExpired:
-        return jsonify({"error": "Timeout: Dialog took too long"}), 500
-    except Exception as e:
-        logger.error(f"Browse error: {e}")
-        return jsonify({"error": str(e)}), 500
+        if path and os.path.exists(path): return jsonify({"success": True, "path": path})
+        return jsonify({"error": "No file selected"}), 400
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
 @app.route("/api/license")
 def get_license():
