@@ -16,8 +16,9 @@ from urllib.parse import urlparse
 from flask import Flask, jsonify, render_template, request, send_from_directory, send_file
 
 # ==================== 版本配置 ====================
-CURRENT_VERSION = "v2.0"  # 当前版本号，修改此处以更新
+CURRENT_VERSION = "v2.0"
 GITHUB_REPO = "Gsjsjzhznsz/htmlTheLongDrivemodsChinesepatch"
+GITHUB_RELEASE_URL = f"https://github.com/{GITHUB_REPO}/releases/download/{CURRENT_VERSION}/ModpackManager.exe" # 假设文件名
 
 # 控制台设置
 if sys.platform == 'win32':
@@ -28,13 +29,13 @@ if sys.platform == 'win32':
 
 print("""
 ╔════════════════════════════════════════════════╗
-║                                                ║
-║                                                ║
-║            TLD 网页模组安装器                  ║
-║         The Long Drive Mod Installer           ║
-║              QQ群:661726941                    ║
-║                                                ║
-║                                                ║
+║                                               ║
+║                                               ║
+║            TLD 网页模组安装器                 ║
+║         The Long Drive Mod Installer          ║
+║              QQ群:661726941                   ║
+║                                               ║
+║                                               ║
 ╚════════════════════════════════════════════════╝
 """)
 
@@ -85,14 +86,14 @@ VERSIONS_PATH.mkdir(parents=True, exist_ok=True)
 
 MODLIST_SOURCES = [
     {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/modlist_3.json"},
-    {"name": "极狐镜像源(中文)", "url": "https://jihulab.com/XLDev/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"},
+    {"name": "极狐镜像源(中文)", "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"},
     {"name": "Local Source(english)", "url": None, "local_path": BASE_DIR / "en-modlist_3.json"},
     {"name": "本地源(中文)", "url": None, "local_path": BASE_DIR / "modlist_3.json"}
 ]
 
 MODPACK_SOURCES = [
     {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
-    {"name": "极狐镜像源(中文)", "url": "https://jihulab.com/XLDev/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
+    {"name": "极狐镜像源(中文)", "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
     {"name": "Local Source(english)", "url": None, "local_path": BASE_DIR / "Modpacks" / "en-modlist_3.json"},
     {"name": "本地源(中文)", "url": None, "local_path": BASE_DIR / "Modpacks" / "modlist_3.json"}
 ]
@@ -124,6 +125,15 @@ def get_normalized_filename(filename):
     if not filename: return ""
     return re.sub(r'[^a-zA-Z0-9]', '', os.path.splitext(filename)[0]).lower()
 
+def get_proxied_url(url):
+    """根据配置决定是否使用加速源"""
+    cfg = load_config()
+    if cfg.get("use_gh_proxy", True): # 默认开启
+        # 仅对 GitHub 链接加速
+        if "github.com" in url or "githubusercontent.com" in url:
+            return f"https://ghproxy.net/{url}"
+    return url
+
 # ==================== 数据加载 ====================
 def load_data_from_source(sources, source_index, data_key="Mods", strict=False):
     if source_index >= len(sources): return [], source_index
@@ -132,6 +142,7 @@ def load_data_from_source(sources, source_index, data_key="Mods", strict=False):
     try:
         if source.get("url"):
             logger.info(f"尝试从 {source['name']} 加载...")
+            # 数据源列表通常不在 GitHub，不需要加速，若需要可在此处也调用 get_proxied_url
             resp = fetch_with_retry(source["url"])
             if resp:
                 data = resp.json().get(data_key, [])
@@ -164,7 +175,7 @@ def add_download_task(filename, mod_name):
     with task_lock:
         task_id = task_counter
         task_counter += 1
-        download_tasks.append({"id": task_id, "filename": filename, "name": mod_name, "status": "pending", "progress": 0})
+        download_tasks.append({"id": task_id, "filename": filename, "name": mod_name, "status": "pending", "progress": 0, "speed": 0, "total_size": 0})
     return task_id
 
 def update_task(task_id, **kwargs):
@@ -174,7 +185,9 @@ def update_task(task_id, **kwargs):
 
 def download_file_with_progress(url, dest_path, task_id):
     try:
-        r = requests.get(url, stream=True, timeout=30)
+        # 使用加速链接
+        real_url = get_proxied_url(url)
+        r = requests.get(real_url, stream=True, timeout=30)
         r.raise_for_status()
         total = int(r.headers.get('content-length', 0))
         update_task(task_id, total_size=total, status="downloading")
@@ -311,7 +324,6 @@ def api_install():
     if ok: return jsonify({"success": True, "new_version": msg, "name": mod.get("Name")})
     else: return jsonify({"error": msg}), 500
 
-# 新增：批量安装
 @app.route("/api/batch-install", methods=["POST"])
 def api_batch_install():
     data = request.json
@@ -409,20 +421,26 @@ def api_export_modpack():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 新增：检查更新
 @app.route("/api/check-update")
 def api_check_update():
     try:
         url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
         headers = {"Accept": "application/vnd.github.v3+json"}
-        # 添加 User-Agent 防止被 GitHub API 拒绝
+        # 不使用加速源检查 API，因为 API 限流可能更严格
         resp = requests.get(url, headers=headers, timeout=5)
         if resp.status_code == 200:
             data = resp.json()
             latest_tag = data.get("tag_name", "")
             html_url = data.get("html_url", "")
+            assets = data.get("assets", [])
+            download_url = ""
             
-            # 简单版本比较：v2.0 vs v3.0
+            # 查找 EXE 下载链接
+            for asset in assets:
+                if asset.get("name", "").endswith(".exe"):
+                    download_url = asset.get("browser_download_url")
+                    break
+            
             def parse_ver(v):
                 try: return float(v.replace("v", ""))
                 except: return 0
@@ -432,7 +450,8 @@ def api_check_update():
                     "update_available": True,
                     "current": CURRENT_VERSION,
                     "latest": latest_tag,
-                    "url": html_url
+                    "url": html_url,
+                    "download_url": download_url
                 })
             else:
                 return jsonify({"update_available": False})
@@ -441,6 +460,32 @@ def api_check_update():
     except Exception as e:
         logger.warning(f"检查更新失败: {e}")
         return jsonify({"update_available": False})
+
+# 新增：下载更新包
+@app.route("/api/download-update")
+def api_download_update():
+    url = request.args.get("url")
+    if not url: return jsonify({"error": "No URL"}), 400
+    
+    try:
+        # 使用加速源下载
+        real_url = get_proxied_url(url)
+        r = requests.get(real_url, stream=True, timeout=30)
+        if r.status_code != 200: return jsonify({"error": "Failed to download"}), 500
+        
+        # 保存到 Downloads 文件夹
+        downloads_dir = Path.home() / "Downloads"
+        downloads_dir.mkdir(exist_ok=True)
+        filename = "ModpackManager_New.exe"
+        save_path = downloads_dir / filename
+        
+        with open(save_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+                
+        return jsonify({"success": True, "path": str(save_path)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/config", methods=["GET", "POST"])
 def api_config():
