@@ -20,7 +20,7 @@ from flask import Flask, jsonify, render_template, request, send_from_directory,
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==================== 版本配置 ====================
-CURRENT_VERSION = "v2.0"
+CURRENT_VERSION = "v3.0"
 GITHUB_REPO = "Gsjsjzhznsz/htmlTheLongDrivemodsChinesepatch"
 
 if sys.platform == 'win32':
