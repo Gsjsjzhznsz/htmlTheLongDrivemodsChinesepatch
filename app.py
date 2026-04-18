@@ -24,13 +24,13 @@ if sys.platform == 'win32':
 
 print("""
 ╔════════════════════════════════════════════════╗
-║                                               ║
-║                                               ║
-║            TLD 网页模组安装器                 ║
-║         The Long Drive Mod Installer          ║
-║              QQ群:661726941                   ║
-║                                               ║
-║                                               ║
+║                                                ║
+║                                                ║
+║            TLD 网页模组安装器                  ║
+║         The Long Drive Mod Installer           ║
+║              QQ群:661726941                    ║
+║                                                ║
+║                                                ║
 ╚════════════════════════════════════════════════╝
 """)
 
@@ -83,14 +83,14 @@ VERSIONS_PATH.mkdir(parents=True, exist_ok=True)
 # 同步用户修改：数据源配置
 MODLIST_SOURCES = [
     {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/modlist_3.json"},
-    {"name": "极狐镜像源(中文)", "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"},
+    {"name": "极狐镜像源(中文)", "url": "https://jihulab.com/XLDev/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"},
     {"name": "Local Source(english)", "url": None, "local_path": BASE_DIR / "en-modlist_3.json"},
     {"name": "本地源(中文)", "url": None, "local_path": BASE_DIR / "modlist_3.json"}
 ]
 
 MODPACK_SOURCES = [
     {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
-    {"name": "极狐镜像源(中文)", "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
+    {"name": "极狐镜像源(中文)", "url": "https://jihulab.com/XLDev/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
     {"name": "Local Source(english)", "url": None, "local_path": BASE_DIR / "Modpacks" / "en-modlist_3.json"},
     {"name": "本地源(中文)", "url": None, "local_path": BASE_DIR / "Modpacks" / "modlist_3.json"}
 ]
