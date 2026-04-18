@@ -11,16 +11,18 @@ import sys
 import ctypes
 import subprocess
 import io
+import requests
+import urllib3
 from pathlib import Path
-from urllib.parse import urlparse
 from flask import Flask, jsonify, render_template, request, send_from_directory, send_file
+
+# 屏蔽 HTTPS 不安全请求警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==================== 版本配置 ====================
 CURRENT_VERSION = "v2.0"
 GITHUB_REPO = "Gsjsjzhznsz/htmlTheLongDrivemodsChinesepatch"
-GITHUB_RELEASE_URL = f"https://github.com/{GITHUB_REPO}/releases/download/{CURRENT_VERSION}/ModpackManager.exe" # 假设文件名
 
-# 控制台设置
 if sys.platform == 'win32':
     try:
         ctypes.windll.kernel32.SetConsoleOutputCP(65001)
@@ -29,17 +31,15 @@ if sys.platform == 'win32':
 
 print("""
 ╔════════════════════════════════════════════════╗
-║                                               ║
-║                                               ║
-║            TLD 网页模组安装器                 ║
-║         The Long Drive Mod Installer          ║
-║              QQ群:661726941                   ║
-║                                               ║
-║                                               ║
+║                                                ║
+║                                                ║
+║            TLD 网页模组安装器                  ║
+║         The Long Drive Mod Installer           ║
+║              QQ群:661726941                    ║
+║                                                ║
+║                                                ║
 ╚════════════════════════════════════════════════╝
 """)
-
-import requests
 
 # ==================== 路径与日志 ====================
 def get_resource_path(relative_path):
@@ -84,16 +84,17 @@ CONFIG_FILE = GAME_PATH / "installer_config.json"
 MODS_PATH.mkdir(parents=True, exist_ok=True)
 VERSIONS_PATH.mkdir(parents=True, exist_ok=True)
 
+# 同步用户修改的源配置
 MODLIST_SOURCES = [
     {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/modlist_3.json"},
-    {"name": "极狐镜像源(中文)", "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"},
+    {"name": "极狐镜像源(中文)", "url": "https://jihulab.com/XLDev/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"},
     {"name": "Local Source(english)", "url": None, "local_path": BASE_DIR / "en-modlist_3.json"},
     {"name": "本地源(中文)", "url": None, "local_path": BASE_DIR / "modlist_3.json"}
 ]
 
 MODPACK_SOURCES = [
     {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
-    {"name": "极狐镜像源(中文)", "url": "https://gitlab.com/MFSDev-NET/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
+    {"name": "极狐镜像源(中文)", "url": "https://jihulab.com/XLDev/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/Modpacks/modlist_3.json"},
     {"name": "Local Source(english)", "url": None, "local_path": BASE_DIR / "Modpacks" / "en-modlist_3.json"},
     {"name": "本地源(中文)", "url": None, "local_path": BASE_DIR / "Modpacks" / "modlist_3.json"}
 ]
@@ -125,15 +126,6 @@ def get_normalized_filename(filename):
     if not filename: return ""
     return re.sub(r'[^a-zA-Z0-9]', '', os.path.splitext(filename)[0]).lower()
 
-def get_proxied_url(url):
-    """根据配置决定是否使用加速源"""
-    cfg = load_config()
-    if cfg.get("use_gh_proxy", True): # 默认开启
-        # 仅对 GitHub 链接加速
-        if "github.com" in url or "githubusercontent.com" in url:
-            return f"https://ghproxy.net/{url}"
-    return url
-
 # ==================== 数据加载 ====================
 def load_data_from_source(sources, source_index, data_key="Mods", strict=False):
     if source_index >= len(sources): return [], source_index
@@ -142,7 +134,6 @@ def load_data_from_source(sources, source_index, data_key="Mods", strict=False):
     try:
         if source.get("url"):
             logger.info(f"尝试从 {source['name']} 加载...")
-            # 数据源列表通常不在 GitHub，不需要加速，若需要可在此处也调用 get_proxied_url
             resp = fetch_with_retry(source["url"])
             if resp:
                 data = resp.json().get(data_key, [])
@@ -175,7 +166,7 @@ def add_download_task(filename, mod_name):
     with task_lock:
         task_id = task_counter
         task_counter += 1
-        download_tasks.append({"id": task_id, "filename": filename, "name": mod_name, "status": "pending", "progress": 0, "speed": 0, "total_size": 0})
+        download_tasks.append({"id": task_id, "filename": filename, "name": mod_name, "status": "pending", "progress": 0})
     return task_id
 
 def update_task(task_id, **kwargs):
@@ -185,9 +176,7 @@ def update_task(task_id, **kwargs):
 
 def download_file_with_progress(url, dest_path, task_id):
     try:
-        # 使用加速链接
-        real_url = get_proxied_url(url)
-        r = requests.get(real_url, stream=True, timeout=30)
+        r = requests.get(url, stream=True, timeout=30)
         r.raise_for_status()
         total = int(r.headers.get('content-length', 0))
         update_task(task_id, total_size=total, status="downloading")
@@ -329,31 +318,18 @@ def api_batch_install():
     data = request.json
     filenames = data.get("filenames", [])
     source = data.get("source", 0)
-    
     all_mods, _ = load_data_from_source(MODLIST_SOURCES, source)
     installed = get_installed_mods()
     results = []
-    
     for fn in filenames:
         mod = next((m for m in all_mods if m.get("FileName") == fn), None)
         if not mod: mod = next((m for m in all_mods if get_normalized_filename(m.get("FileName")) == get_normalized_filename(fn)), None)
-        
-        if not mod:
-            results.append(f"❌ {fn}: 未找到")
-            continue
-        
+        if not mod: results.append(f"❌ {fn}: 未找到"); continue
         mod_name = mod.get("Name", fn)
-        if mod_name in installed:
-            results.append(f"⏭️ {mod_name}: 已安装")
-            continue
-        
+        if mod_name in installed: results.append(f"⏭️ {mod_name}: 已安装"); continue
         ok, msg = install_mod(mod, installed)
-        if ok:
-            installed[mod_name] = msg # Update local cache for this batch
-            results.append(f"✅ {mod_name}: 安装成功")
-        else:
-            results.append(f"❌ {mod_name}: {msg}")
-            
+        if ok: installed[mod_name] = msg; results.append(f"✅ {mod_name}: 安装成功")
+        else: results.append(f"❌ {mod_name}: {msg}")
     return jsonify({"success": True, "results": results})
 
 @app.route("/api/uninstall", methods=["POST"])
@@ -369,7 +345,6 @@ def api_update():
     mods, _ = load_data_from_source(MODLIST_SOURCES, source)
     mod = next((m for m in mods if m.get("Name") == name), None)
     if not mod: return jsonify({"error": "Not found"}), 404
-    
     uninstall_mod(name)
     ok, msg = install_mod(mod, get_installed_mods())
     if ok: return jsonify({"success": True, "new_version": msg})
@@ -381,14 +356,11 @@ def api_install_modpack():
     txt_url = data.get("Link")
     source = data.get("source", 0)
     if not txt_url: return jsonify({"error": "No link"}), 500
-    
     try:
         r = requests.get(txt_url, timeout=30)
         if r.status_code != 200: return jsonify({"error": "Failed to download list"}), 500
         files = [l.strip() for l in r.text.splitlines() if l.strip() and not l.startswith("#")]
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+    except Exception as e: return jsonify({"error": str(e)}), 500
     results = install_modpack_from_list(files, source)
     return jsonify({"success": True, "results": results})
 
@@ -397,7 +369,6 @@ def api_import_modpack():
     if 'file' not in request.files: return jsonify({"error": "No file part"}), 400
     file = request.files['file']
     if file.filename == '': return jsonify({"error": "No selected file"}), 400
-    
     if file:
         try:
             content = file.read().decode('utf-8')
@@ -405,42 +376,47 @@ def api_import_modpack():
             source = request.form.get('source', 0, type=int)
             results = install_modpack_from_list(files, source)
             return jsonify({"success": True, "results": results})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+        except Exception as e: return jsonify({"error": str(e)}), 500
 
 @app.route("/api/export-modpack")
 def api_export_modpack():
     try:
-        dll_files = []
-        for item in MODS_PATH.iterdir():
-            if item.is_file() and item.suffix.lower() == '.dll':
-                dll_files.append(item.name)
+        dll_files = [item.name for item in MODS_PATH.iterdir() if item.is_file() and item.suffix.lower() == '.dll']
         if not dll_files: return jsonify({"error": "No DLL files found"}), 404
         content = "\n".join(dll_files)
         return send_file(io.BytesIO(content.encode('utf-8')), mimetype='text/plain', as_attachment=True, download_name='my_modpack.txt')
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
+# ==================== 更新与配置 API ====================
 @app.route("/api/check-update")
 def api_check_update():
+    cfg = load_config()
+    use_proxy = cfg.get("use_proxy", False)
+    
     try:
         url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-        headers = {"Accept": "application/vnd.github.v3+json"}
-        # 不使用加速源检查 API，因为 API 限流可能更严格
-        resp = requests.get(url, headers=headers, timeout=5)
+        headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "TLD-Installer"}
+        
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+        except requests.exceptions.SSLError:
+            resp = requests.get(url, headers=headers, timeout=10, verify=False)
+        
         if resp.status_code == 200:
             data = resp.json()
             latest_tag = data.get("tag_name", "")
             html_url = data.get("html_url", "")
             assets = data.get("assets", [])
-            download_url = ""
             
-            # 查找 EXE 下载链接
+            download_url = ""
             for asset in assets:
                 if asset.get("name", "").endswith(".exe"):
-                    download_url = asset.get("browser_download_url")
+                    download_url = asset.get("browser_download_url", "")
                     break
             
+            if use_proxy and download_url:
+                download_url = f"https://ghproxy.net/{download_url}"
+
             def parse_ver(v):
                 try: return float(v.replace("v", ""))
                 except: return 0
@@ -461,31 +437,48 @@ def api_check_update():
         logger.warning(f"检查更新失败: {e}")
         return jsonify({"update_available": False})
 
-# 新增：下载更新包
-@app.route("/api/download-update")
-def api_download_update():
-    url = request.args.get("url")
-    if not url: return jsonify({"error": "No URL"}), 400
+@app.route("/api/do-update", methods=["POST"])
+def api_do_update():
+    data = request.json
+    download_url = data.get("url")
+    backup_name = data.get("backup_name", "ModpackManager_old.exe")
     
+    if not download_url: return jsonify({"error": "No download URL"}), 400
+
     try:
-        # 使用加速源下载
-        real_url = get_proxied_url(url)
-        r = requests.get(real_url, stream=True, timeout=30)
-        if r.status_code != 200: return jsonify({"error": "Failed to download"}), 500
+        temp_dir = tempfile.gettempdir()
+        new_exe_path = os.path.join(temp_dir, "ModpackManager_new.exe")
         
-        # 保存到 Downloads 文件夹
-        downloads_dir = Path.home() / "Downloads"
-        downloads_dir.mkdir(exist_ok=True)
-        filename = "ModpackManager_New.exe"
-        save_path = downloads_dir / filename
+        with requests.get(download_url, stream=True) as r:
+            r.raise_for_status()
+            with open(new_exe_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192): f.write(chunk)
         
-        with open(save_path, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
-                
-        return jsonify({"success": True, "path": str(save_path)})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        current_exe = sys.executable
+        current_dir = os.path.dirname(current_exe)
+        new_exe_final = os.path.join(current_dir, "ModpackManager.exe")
+        old_exe_final = os.path.join(current_dir, backup_name)
+        
+        bat_content = f"""
+@echo off
+chcp 65001
+echo Updating...
+:wait
+tasklist /fi "pid eq {os.getpid()}" 2>NUL | find "{os.getpid()}" >NUL
+if "%ERRORLEVEL%"=="0" goto wait
+if exist "{old_exe_final}" del /f /q "{old_exe_final}"
+rename "{current_exe}" "{backup_name}"
+move /y "{new_exe_path}" "{new_exe_final}"
+start "" "{new_exe_final}"
+exit
+        """
+        bat_path = os.path.join(temp_dir, "update_tld.bat")
+        with open(bat_path, "w", encoding="gbk") as f: f.write(bat_content)
+        
+        subprocess.Popen(['cmd', '/c', bat_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
+        return jsonify({"success": True, "message": "Update started."})
+    
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
 @app.route("/api/config", methods=["GET", "POST"])
 def api_config():
@@ -523,10 +516,11 @@ def browse_exe():
     if ($FileBrowser.ShowDialog() -eq 'OK') { $FileBrowser.FileName }
     """
     try:
-        result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_script], capture_output=True, text=True, timeout=30, creationflags=subprocess.CREATE_NO_WINDOW)
+        result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_script], capture_output=True, text=True, timeout=120, creationflags=subprocess.CREATE_NO_WINDOW)
         path = result.stdout.strip()
         if path and os.path.exists(path): return jsonify({"success": True, "path": path})
         return jsonify({"error": "No file selected"}), 400
+    except subprocess.TimeoutExpired: return jsonify({"error": "Dialog timed out"}), 408
     except Exception as e: return jsonify({"error": str(e)}), 500
 
 @app.route("/api/license")
