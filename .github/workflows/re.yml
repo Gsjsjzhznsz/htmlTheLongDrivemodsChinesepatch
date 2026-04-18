@@ -21,6 +21,11 @@ jobs:
   build-and-release:
     runs-on: windows-latest
     
+    # 添加这整个 permissions 块
+    permissions:
+      contents: write  # 允许创建 Release
+      actions: read
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
