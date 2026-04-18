@@ -1,0 +1,73 @@
+name: Manual PyInstaller Build & Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release 标签 (例如: v1.0.0)'
+        required: true
+        type: string
+      release_title:
+        description: 'Release 标题 (可选，默认使用标签名)'
+        required: false
+        type: string
+      additional_args:
+        description: '额外传递给 PyInstaller 的参数'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build with PyInstaller
+      run: |
+        Remove-Item -Path dist -Recurse -Force -ErrorAction SilentlyContinue
+        pyinstaller build.spec ${{ github.event.inputs.additional_args }}
+    
+    - name: Verify EXE exists
+      run: |
+        if (Test-Path "dist/ModpackManager.exe") {
+          Write-Host "✅ EXE 文件已生成"
+          Get-Item "dist/ModpackManager.exe" | Format-List Name, Length
+        } else {
+          Write-Error "❌ 未找到 ModpackManager.exe"
+          exit 1
+        }
+    
+    - name: Create Release and Upload EXE
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.release_tag }}
+        name: ${{ github.event.inputs.release_title || github.event.inputs.release_tag }}
+        body: |
+          自动构建版本 ${{ github.event.inputs.release_tag }}
+          
+          ### 构建信息
+          - 构建时间: ${{ github.run_started_at }}
+          - 运行编号: ${{ github.run_id }}
+          - 提交哈希: ${{ github.sha }}
+          
+          ### 文件说明
+          - `ModpackManager.exe` - 主程序文件，直接运行即可
+        files: dist/ModpackManager.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
