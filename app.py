@@ -14,9 +14,10 @@ import io
 import requests
 import urllib3
 from pathlib import Path
+from urllib.parse import urlparse
 from flask import Flask, jsonify, render_template, request, send_from_directory, send_file
 
-# 屏蔽 HTTPS 不安全请求警告
+# 屏蔽警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==================== 版本配置 ====================
@@ -31,13 +32,13 @@ if sys.platform == 'win32':
 
 print("""
 ╔════════════════════════════════════════════════╗
-║                                                ║
-║                                                ║
-║            TLD 网页模组安装器                  ║
-║         The Long Drive Mod Installer           ║
-║              QQ群:661726941                    ║
-║                                                ║
-║                                                ║
+║                                               ║
+║                                               ║
+║            TLD 网页模组安装器                 ║
+║         The Long Drive Mod Installer          ║
+║              QQ群:661726941                   ║
+║                                               ║
+║                                               ║
 ╚════════════════════════════════════════════════╝
 """)
 
@@ -84,7 +85,6 @@ CONFIG_FILE = GAME_PATH / "installer_config.json"
 MODS_PATH.mkdir(parents=True, exist_ok=True)
 VERSIONS_PATH.mkdir(parents=True, exist_ok=True)
 
-# 同步用户修改的源配置
 MODLIST_SOURCES = [
     {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/modlist_3.json"},
     {"name": "极狐镜像源(中文)", "url": "https://jihulab.com/XLDev/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"},
@@ -397,9 +397,10 @@ def api_check_update():
         url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
         headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "TLD-Installer"}
         
+        # 检查更新时也做双重尝试
         try:
             resp = requests.get(url, headers=headers, timeout=10)
-        except requests.exceptions.SSLError:
+        except Exception:
             resp = requests.get(url, headers=headers, timeout=10, verify=False)
         
         if resp.status_code == 200:
@@ -439,46 +440,169 @@ def api_check_update():
 
 @app.route("/api/do-update", methods=["POST"])
 def api_do_update():
+    """
+    执行应用程序更新
+    修复了更新完成后主程序无法自动启动的问题
+    """
     data = request.json
     download_url = data.get("url")
     backup_name = data.get("backup_name", "ModpackManager_old.exe")
     
-    if not download_url: return jsonify({"error": "No download URL"}), 400
+    if not download_url: 
+        return jsonify({"error": "No download URL"}), 400
 
+    temp_dir = tempfile.gettempdir()
+    new_exe_path = os.path.join(temp_dir, "ModpackManager_new.exe")
+    
+    # --- 下载逻辑 (双重尝试机制) ---
+    download_success = False
+    error_msg = ""
     try:
-        temp_dir = tempfile.gettempdir()
-        new_exe_path = os.path.join(temp_dir, "ModpackManager_new.exe")
-        
-        with requests.get(download_url, stream=True) as r:
+        logger.info("开始下载更新文件...")
+        with requests.get(download_url, stream=True, timeout=60) as r:
             r.raise_for_status()
             with open(new_exe_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192): f.write(chunk)
-        
+                for chunk in r.iter_content(chunk_size=8192): 
+                    f.write(chunk)
+        download_success = True
+        logger.info("新版本下载成功")
+    except Exception as e:
+        logger.warning(f"第一次下载尝试失败: {str(e)}")
+        try:
+            with requests.get(download_url, stream=True, timeout=60, verify=False) as r:
+                r.raise_for_status()
+                with open(new_exe_path, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192): 
+                        f.write(chunk)
+            download_success = True
+            logger.info("跳过证书验证下载成功")
+        except Exception as e2:
+            error_msg = str(e2)
+            logger.error(f"下载彻底失败: {error_msg}")
+            
+    if not download_success:
+        return jsonify({"error": f"下载失败: {error_msg}"}), 500
+
+    try:
         current_exe = sys.executable
         current_dir = os.path.dirname(current_exe)
         new_exe_final = os.path.join(current_dir, "ModpackManager.exe")
         old_exe_final = os.path.join(current_dir, backup_name)
         
-        bat_content = f"""
-@echo off
-chcp 65001
-echo Updating...
-:wait
+        # 修复后的批处理脚本 - 确保自动启动新版本
+        bat_content = f'''@echo off
+chcp 65001 >nul
+title TLD Mod Installer - Updater
+cls
+echo ==========================================
+echo        TLD Mod Installer Update
+echo ==========================================
+echo.
+echo  [1/3] Download complete.
+echo  [2/3] Waiting for program to exit...
+
+:: 等待主程序完全退出
+:wait_process
 tasklist /fi "pid eq {os.getpid()}" 2>NUL | find "{os.getpid()}" >NUL
-if "%ERRORLEVEL%"=="0" goto wait
-if exist "{old_exe_final}" del /f /q "{old_exe_final}"
-rename "{current_exe}" "{backup_name}"
-move /y "{new_exe_path}" "{new_exe_final}"
-start "" "{new_exe_final}"
-exit
-        """
-        bat_path = os.path.join(temp_dir, "update_tld.bat")
-        with open(bat_path, "w", encoding="gbk") as f: f.write(bat_content)
-        
-        subprocess.Popen(['cmd', '/c', bat_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
-        return jsonify({"success": True, "message": "Update started."})
+if "%ERRORLEVEL%"=="0" (
+    timeout /t 1 /nobreak >nul
+    goto wait_process
+)
+
+echo  Program closed. Replacing files...
+
+:: 删除旧备份（如果存在）
+if exist "{old_exe_final}" (
+    echo  Removing old backup...
+    del /f /q "{old_exe_final}" 2>nul
+)
+
+:: 重命名当前程序为备份
+echo  Creating backup...
+:retry_rename
+rename "{current_exe}" "{backup_name}" 2>nul
+if exist "{current_exe}" (
+    timeout /t 1 /nobreak >nul
+    goto retry_rename
+)
+
+:: 移动新程序到目标位置
+echo  Installing new version...
+move /y "{new_exe_path}" "{new_exe_final}" 2>nul
+
+:: 验证文件是否成功移动
+if not exist "{new_exe_final}" (
+    echo  ERROR: Failed to install new version!
+    echo  Please check file permissions and try again.
+    echo.
+    echo  Press any key to exit...
+    pause >nul
+    exit /b 1
+)
+
+echo  [3/3] Starting new version...
+
+:: 等待文件系统同步
+timeout /t 2 /nobreak >nul
+
+:: 切换到目标目录并启动程序
+cd /d "{current_dir}" 2>nul
+
+:: 尝试多种方式启动新程序
+if exist "{new_exe_final}" (
+    echo  Launching ModpackManager.exe...
+    start "" /D "{current_dir}" "{new_exe_final}"
     
-    except Exception as e: return jsonify({"error": str(e)}), 500
+    :: 备用启动方式
+    if errorlevel 1 (
+        start "" "{new_exe_final}"
+    )
+)
+
+:: 等待程序启动
+timeout /t 1 /nobreak >nul
+
+:: 清理临时文件
+if exist "{new_exe_path}" del /f /q "{new_exe_path}" 2>nul
+
+echo.
+echo  ==========================================
+echo  Update completed successfully!
+echo  ==========================================
+echo.
+echo  If the program didn't start automatically,
+echo  please manually run: ModpackManager.exe
+echo.
+echo  This window will close in 5 seconds...
+timeout /t 5 /nobreak >nul
+exit
+'''
+        
+        bat_path = os.path.join(temp_dir, "update_tld.bat")
+        with open(bat_path, "w", encoding="gbk") as f: 
+            f.write(bat_content)
+        
+        # 启动更新脚本（在新的控制台窗口中）
+        subprocess.Popen(['cmd', '/c', bat_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
+        
+        # 强制关闭当前 Python 进程
+        def shutdown_self():
+            time.sleep(0.5)  # 等待 0.5 秒确保响应已发送
+            print("正在关闭主程序以完成更新...")
+            logger.info("正在关闭主程序以完成更新...")
+            # 强制退出
+            os._exit(0)
+        
+        threading.Thread(target=shutdown_self, daemon=True).start()
+        
+        return jsonify({
+            "success": True, 
+            "message": "Update started. The new version will launch automatically."
+        })
+    
+    except Exception as e: 
+        logger.error(f"更新失败: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/config", methods=["GET", "POST"])
 def api_config():
