@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest  # 可改为 ubuntu-latest 或 macos-latest
+    runs-on: windows-latest  # PyInstaller 打包 Windows exe 最好用 Windows
     
     steps:
     - name: Checkout code
@@ -20,7 +20,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'  # 可修改版本
+        python-version: '3.11'
     
     - name: Install dependencies
       run: |
@@ -30,11 +30,21 @@ jobs:
     
     - name: Build with PyInstaller
       run: |
+        # 先删除旧的 dist 目录（如果有）
+        Remove-Item -Path dist -Recurse -Force -ErrorAction SilentlyContinue
         pyinstaller build.spec ${{ github.event.inputs.additional_args }}
     
-    - name: Upload artifacts
+    - name: Upload EXE artifact
       uses: actions/upload-artifact@v4
       with:
-        name: build-output
-        path: dist/
+        name: ModpackManager
+        path: dist/ModpackManager.exe  # 只上传单个 exe 文件
         retention-days: 7
+    
+    # 可选：同时上传到 Release（如果打了 tag）
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: dist/ModpackManager.exe
+        generate_release_notes: true
