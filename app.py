@@ -10,10 +10,14 @@ import re
 import sys
 import ctypes
 import subprocess
-import io # 新增：用于内存文件流
+import io
 from pathlib import Path
 from urllib.parse import urlparse
-from flask import Flask, jsonify, render_template, request, send_from_directory, send_file # 新增 send_file
+from flask import Flask, jsonify, render_template, request, send_from_directory, send_file
+
+# ==================== 版本配置 ====================
+CURRENT_VERSION = "v2.0"  # 当前版本号，修改此处以更新
+GITHUB_REPO = "Gsjsjzhznsz/htmlTheLongDrivemodsChinesepatch"
 
 # 控制台设置
 if sys.platform == 'win32':
@@ -42,7 +46,6 @@ def get_resource_path(relative_path):
     except Exception: base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
-# 同步用户修改：去除颜色代码
 class ColoredFormatter(logging.Formatter):
     def format(self, record):
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
@@ -80,7 +83,6 @@ CONFIG_FILE = GAME_PATH / "installer_config.json"
 MODS_PATH.mkdir(parents=True, exist_ok=True)
 VERSIONS_PATH.mkdir(parents=True, exist_ok=True)
 
-# 同步用户修改：数据源配置
 MODLIST_SOURCES = [
     {"name": "Official source(English)", "url": "https://gitlab.com/KolbenLP/WorkshopTLDMods/-/raw/WorkshopDatabase8.6/modlist_3.json"},
     {"name": "极狐镜像源(中文)", "url": "https://jihulab.com/XLDev/workshop-tld-chinese/-/raw/WorkshopDatabase8.6/modlist_3.json"},
@@ -239,9 +241,8 @@ def uninstall_mod(mod_name):
     (VERSIONS_PATH / f"{mod_name}.txt").unlink(missing_ok=True)
     return True, "OK"
 
-# ==================== 模组包 ====================
+# ==================== 模组包与批量 ====================
 def install_modpack_from_list(files, source_index):
-    """核心安装逻辑：根据文件名列表安装"""
     all_mods, _ = load_data_from_source(MODLIST_SOURCES, source_index)
     installed = get_installed_mods()
     results = []
@@ -269,7 +270,7 @@ def install_modpack_from_list(files, source_index):
 @app.route("/")
 def index():
     lang = request.args.get("lang", "zh")
-    return render_template("index.html", translations=load_translations(lang))
+    return render_template("index.html", translations=load_translations(lang), version=CURRENT_VERSION)
 
 @app.route("/static/<path:filename>")
 def serve_static(filename): return send_from_directory(get_resource_path("static"), filename)
@@ -307,8 +308,41 @@ def api_install():
     if not mod: return jsonify({"error": "Not found"}), 404
     
     ok, msg = install_mod(mod, get_installed_mods())
-    if ok: return jsonify({"success": True, "new_version": msg})
+    if ok: return jsonify({"success": True, "new_version": msg, "name": mod.get("Name")})
     else: return jsonify({"error": msg}), 500
+
+# 新增：批量安装
+@app.route("/api/batch-install", methods=["POST"])
+def api_batch_install():
+    data = request.json
+    filenames = data.get("filenames", [])
+    source = data.get("source", 0)
+    
+    all_mods, _ = load_data_from_source(MODLIST_SOURCES, source)
+    installed = get_installed_mods()
+    results = []
+    
+    for fn in filenames:
+        mod = next((m for m in all_mods if m.get("FileName") == fn), None)
+        if not mod: mod = next((m for m in all_mods if get_normalized_filename(m.get("FileName")) == get_normalized_filename(fn)), None)
+        
+        if not mod:
+            results.append(f"❌ {fn}: 未找到")
+            continue
+        
+        mod_name = mod.get("Name", fn)
+        if mod_name in installed:
+            results.append(f"⏭️ {mod_name}: 已安装")
+            continue
+        
+        ok, msg = install_mod(mod, installed)
+        if ok:
+            installed[mod_name] = msg # Update local cache for this batch
+            results.append(f"✅ {mod_name}: 安装成功")
+        else:
+            results.append(f"❌ {mod_name}: {msg}")
+            
+    return jsonify({"success": True, "results": results})
 
 @app.route("/api/uninstall", methods=["POST"])
 def api_uninstall():
@@ -334,10 +368,8 @@ def api_install_modpack():
     data = request.json
     txt_url = data.get("Link")
     source = data.get("source", 0)
-    
     if not txt_url: return jsonify({"error": "No link"}), 500
     
-    # 下载txt内容
     try:
         r = requests.get(txt_url, timeout=30)
         if r.status_code != 200: return jsonify({"error": "Failed to download list"}), 500
@@ -348,52 +380,67 @@ def api_install_modpack():
     results = install_modpack_from_list(files, source)
     return jsonify({"success": True, "results": results})
 
-# 新增：导入模组包
 @app.route("/api/import-modpack", methods=["POST"])
 def api_import_modpack():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
+    if 'file' not in request.files: return jsonify({"error": "No file part"}), 400
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
+    if file.filename == '': return jsonify({"error": "No selected file"}), 400
     
     if file:
         try:
             content = file.read().decode('utf-8')
             files = [l.strip() for l in content.splitlines() if l.strip() and not l.startswith("#")]
-            # 默认使用当前浏览源作为查找源
             source = request.form.get('source', 0, type=int)
             results = install_modpack_from_list(files, source)
             return jsonify({"success": True, "results": results})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-# 新增：导出模组包
 @app.route("/api/export-modpack")
 def api_export_modpack():
     try:
         dll_files = []
-        # 仅扫描 Mods 根目录下的 dll，符合大多数模组情况
-        # 如果需要递归扫描所有子文件夹，可以使用 os.walk
         for item in MODS_PATH.iterdir():
             if item.is_file() and item.suffix.lower() == '.dll':
                 dll_files.append(item.name)
-        
-        if not dll_files:
-            return jsonify({"error": "No DLL files found in Mods folder"}), 404
-
-        # 生成文本内容
+        if not dll_files: return jsonify({"error": "No DLL files found"}), 404
         content = "\n".join(dll_files)
-        
-        # 创建内存文件流
-        return send_file(
-            io.BytesIO(content.encode('utf-8')),
-            mimetype='text/plain',
-            as_attachment=True,
-            download_name='my_modpack.txt'
-        )
+        return send_file(io.BytesIO(content.encode('utf-8')), mimetype='text/plain', as_attachment=True, download_name='my_modpack.txt')
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# 新增：检查更新
+@app.route("/api/check-update")
+def api_check_update():
+    try:
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+        headers = {"Accept": "application/vnd.github.v3+json"}
+        # 添加 User-Agent 防止被 GitHub API 拒绝
+        resp = requests.get(url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            latest_tag = data.get("tag_name", "")
+            html_url = data.get("html_url", "")
+            
+            # 简单版本比较：v2.0 vs v3.0
+            def parse_ver(v):
+                try: return float(v.replace("v", ""))
+                except: return 0
+            
+            if parse_ver(latest_tag) > parse_ver(CURRENT_VERSION):
+                return jsonify({
+                    "update_available": True,
+                    "current": CURRENT_VERSION,
+                    "latest": latest_tag,
+                    "url": html_url
+                })
+            else:
+                return jsonify({"update_available": False})
+        else:
+            return jsonify({"update_available": False})
+    except Exception as e:
+        logger.warning(f"检查更新失败: {e}")
+        return jsonify({"update_available": False})
 
 @app.route("/api/config", methods=["GET", "POST"])
 def api_config():
