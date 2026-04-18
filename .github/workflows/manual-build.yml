@@ -1,0 +1,40 @@
+name: Manual PyInstaller Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      additional_args:
+        description: '额外传递给 PyInstaller 的参数'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  build:
+    runs-on: windows-latest  # 可改为 ubuntu-latest 或 macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'  # 可修改版本
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build with PyInstaller
+      run: |
+        pyinstaller build.spec ${{ github.event.inputs.additional_args }}
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-output
+        path: dist/
+        retention-days: 7
