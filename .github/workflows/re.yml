@@ -11,6 +11,11 @@ on:
         description: 'Release 标题 (可选，默认使用标签名)'
         required: false
         type: string
+      release_notes:
+        description: '更新说明 (支持 Markdown 格式)'
+        required: false
+        type: string
+        default: ''
       additional_args:
         description: '额外传递给 PyInstaller 的参数'
         required: false
@@ -21,9 +26,8 @@ jobs:
   build-and-release:
     runs-on: windows-latest
     
-    # 添加这整个 permissions 块
     permissions:
-      contents: write  # 允许创建 Release
+      contents: write
       actions: read
     
     steps:
@@ -62,7 +66,9 @@ jobs:
         tag_name: ${{ github.event.inputs.release_tag }}
         name: ${{ github.event.inputs.release_title || github.event.inputs.release_tag }}
         body: |
-          自动构建版本 ${{ github.event.inputs.release_tag }}
+          ${{ github.event.inputs.release_notes }}
+          
+          ---
           
           ### 构建信息
           - 构建时间: ${{ github.run_started_at }}
