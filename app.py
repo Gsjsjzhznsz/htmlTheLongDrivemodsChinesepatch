@@ -20,7 +20,7 @@ from flask import Flask, jsonify, render_template, request, send_from_directory,
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==================== 版本配置 ====================
-CURRENT_VERSION = "v2.0"
+CURRENT_VERSION = "v4.0"
 GITHUB_REPO = "Gsjsjzhznsz/htmlTheLongDrivemodsChinesepatch"
 
 if sys.platform == 'win32':
@@ -31,13 +31,13 @@ if sys.platform == 'win32':
 
 print("""
 ╔════════════════════════════════════════════════╗
-║                                               ║
-║                                               ║
-║            TLD 网页模组安装器                 ║
-║         The Long Drive Mod Installer          ║
-║              QQ群:661726941                   ║
-║                                               ║
-║                                               ║
+║                                                ║
+║                                                ║
+║            TLD 网页模组安装器                  ║
+║         The Long Drive Mod Installer           ║
+║              QQ群:661726941                    ║
+║                                                ║
+║                                                ║
 ╚════════════════════════════════════════════════╝
 """)
 
