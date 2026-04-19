@@ -3,19 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>TLD Mod Installer</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='tld.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* 确保回到顶部按钮显示正常 */
+        #back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #2a2a36;
+            color: #fff;
+            border: 1px solid #3f3f4e;
+            font-size: 24px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        #back-to-top:hover { background: #3f3f4e; transform: scale(1.05); }
+        body.sidebar-collapsed #back-to-top { right: 80px; }
+        .sidebar.collapsed .btn-text, .sidebar.collapsed .menu-text { display: none; }
+        .sidebar.collapsed .sidebar-btn { justify-content: center; }
+        /* 批量操作栏激活样式 */
+        .batch-bar.active { transform: translateY(0); }
+    </style>
 </head>
 <body>
-    <!-- 左侧导航栏 -->
+    <!-- 左侧导航栏 (重构布局: 导航列表在上, 操作按钮在下) -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <span class="logo-icon">🚗</span>
             <span class="logo-text" data-i18n="app_title">TLD Manager</span>
         </div>
 
-        <!-- 导航列表移到最上面 -->
         <ul class="nav-list">
             <li class="nav-item active" data-tab="browse"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg><span class="menu-text" data-i18n="browse_mods">📦 浏览模组</span></li>
             <li class="nav-item" data-tab="modpacks"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm0 14H4V4h16v12z"/></svg><span class="menu-text" data-i18n="modpacks">📚 模组包</span></li>
@@ -26,22 +56,10 @@
 
         <!-- 操作按钮推到底部 -->
         <div class="sidebar-actions">
-            <button class="sidebar-btn primary" onclick="launchSteam()" title="Launch Steam">
-                <span>🎮</span>
-                <span class="btn-text" data-i18n="launch_game">启动游戏</span>
-            </button>
-            <button class="sidebar-btn primary" onclick="launchExe()" title="Launch EXE">
-                <span>🚀</span>
-                <span class="btn-text" data-i18n="launch_exe">启动 EXE</span>
-            </button>
-            <button class="sidebar-btn secondary" onclick="installPatcher()" title="Install Patcher">
-                <span>🔧</span>
-                <span class="btn-text" data-i18n="install_patcher">安装加载器</span>
-            </button>
-            <button class="sidebar-btn secondary" onclick="download1000Cheat()" title="1000km Cheat">
-                <span>📏</span>
-                <span class="btn-text" data-i18n="cheat_1000km">改1000公里</span>
-            </button>
+            <button class="sidebar-btn primary" onclick="launchSteam()" title="Launch Steam"><span>🎮</span><span class="btn-text" data-i18n="launch_game">启动游戏</span></button>
+            <button class="sidebar-btn primary" onclick="launchExe()" title="Launch EXE"><span>🚀</span><span class="btn-text" data-i18n="launch_exe">启动 EXE</span></button>
+            <button class="sidebar-btn secondary" onclick="installPatcher()" title="Install Patcher"><span>🔧</span><span class="btn-text" data-i18n="install_patcher">安装加载器</span></button>
+            <button class="sidebar-btn secondary" onclick="download1000Cheat()" title="1000km Cheat"><span>📏</span><span class="btn-text" data-i18n="cheat_1000km">改1000公里</span></button>
         </div>
 
         <div class="sidebar-footer"><button class="sidebar-toggle" onclick="toggleSidebar()">☰</button></div>
@@ -50,6 +68,7 @@
     <!-- 主内容区 -->
     <div class="main-content">
         <div class="container">
+            <!-- 浏览模组 Tab -->
             <div id="browse-tab" class="tab-content active">
                 <div class="top-bar">
                     <div class="source-selector">
@@ -75,6 +94,7 @@
                 <div id="mod-list" class="mod-grid"></div>
             </div>
 
+            <!-- 模组包 Tab -->
             <div id="modpacks-tab" class="tab-content">
                 <div class="top-bar">
                     <div class="source-selector">
@@ -90,6 +110,7 @@
                 <div id="modpack-list" class="mod-grid"></div>
             </div>
 
+            <!-- 已安装 Tab -->
             <div id="manage-tab" class="tab-content">
                 <div class="top-bar">
                     <div class="source-selector">
@@ -105,6 +126,7 @@
                 <div id="installed-list" class="mod-grid"></div>
             </div>
 
+            <!-- 设置 Tab -->
             <div id="settings-tab" class="tab-content">
                 <div class="settings-section">
                     <h3 data-i18n="update_settings">🔄 更新设置</h3>
@@ -155,6 +177,7 @@
                 </div>
             </div>
             
+            <!-- 关于 Tab -->
             <div id="about-tab" class="tab-content">
                  <div class="settings-section">
                     <h3 data-i18n="about_title">ℹ️ 关于本项目</h3>
@@ -172,28 +195,26 @@
         </div>
     </div>
 
+    <!-- 悬浮组件 -->
     <div id="download-manager" class="download-manager">
         <div class="download-header"><span>📥 <span data-i18n="download_tasks">任务</span> (<span id="task-count">0</span>)</span></div>
         <div id="task-list" class="task-list" style="display:none;"></div>
     </div>
-    
     <div id="batch-bar" class="batch-bar">
         <span data-i18n="selected_items">已选择 <span id="batch-count">0</span> 个模组</span>
         <button class="action-btn primary" onclick="batchInstall()" data-i18n="batch_install">批量安装</button>
         <button class="action-btn secondary" onclick="batchUninstall()" data-i18n="batch_uninstall">批量卸载</button>
         <button class="action-btn secondary" onclick="clearSelection()" data-i18n="cancel">取消</button>
     </div>
-
     <div id="batch-bar-installed" class="batch-bar">
         <span data-i18n="selected_items">已选择 <span id="batch-installed-count">0</span> 个模组</span>
         <button class="action-btn primary" onclick="batchUpdate()" data-i18n="batch_update">批量更新</button>
         <button class="action-btn secondary" onclick="batchUninstallInstalled()" data-i18n="batch_uninstall">批量卸载</button>
         <button class="action-btn secondary" onclick="clearSelectionInstalled()" data-i18n="cancel">取消</button>
     </div>
-
-    <!-- 回到顶部按钮 -->
     <button id="back-to-top" title="Back to Top">↑</button>
     
+    <!-- 模态框 -->
     <div id="mod-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -246,16 +267,14 @@
     function applyTranslations() {
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
-            const span = el.querySelector('span');
-            if (span && translations[key]) {
-                 const text = translations[key];
-                 if (text.includes("{count}")) {
-                     const parts = text.split("{count}");
-                     el.childNodes[0].textContent = parts[0];
-                 }
-            } else if (translations[key]) {
-                el.textContent = translations[key];
+            if (!translations[key]) return;
+            const textSpan = el.querySelector('.btn-text, .menu-text');
+            if (textSpan) { textSpan.textContent = translations[key]; return; }
+            // 保留原有图标等子元素
+            for (let node of el.childNodes) {
+                if (node.nodeType === Node.TEXT_NODE) { node.textContent = translations[key]; break; }
             }
+            if (!el.hasChildNodes() || el.children.length === 0) el.textContent = translations[key];
         });
         document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
             const key = el.getAttribute('data-i18n-placeholder');
@@ -277,7 +296,7 @@
         filterMods(); loadInstalled(currentManageSource); loadModpacks(currentModpackSource);
     }
 
-    // ==================== 核心逻辑 ====================
+    // ==================== 核心变量 ====================
     let allMods = [];
     let currentBrowseSource = 0;
     let currentModpackSource = 0;
@@ -296,14 +315,32 @@
     const escapeHtml = (s) => s ? s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;") : '';
     const noImageSvg = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiMyYTJhMzYiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+";
 
-    // ==================== 更新功能 ====================
+    // ==================== 更新功能 (自动检查) ====================
     async function manualCheckUpdate() {
         showToast(t('checking_update', '正在检查更新...'), 'info');
-        const res = await fetch('/api/check-update');
-        const data = await res.json();
-        if (data.update_available) {
-            if (confirm(t('update_found', '发现新版本 {ver}！\n点击确定立即下载。', {ver: data.latest}))) performUpdate(data.download_url);
-        } else showToast(t('update_latest', '当前已是最新版本！'), 'success');
+        await checkUpdate(true);
+    }
+
+    async function checkUpdate(isManual = false) {
+        try {
+            console.log("正在检查更新...");
+            const res = await fetch('/api/check-update');
+            const data = await res.json();
+            console.log("更新检查结果:", data);
+            if (data.update_available) {
+                showToast(`<div style="color:#fff">🚀 发现新版本 <b>${data.latest}</b>！<br><span style="font-size:0.8rem; opacity:0.8">请前往设置手动更新</span></div>`, 'warning');
+                // 如果是手动检查，可以进一步提示下载
+                if (isManual) {
+                    if (confirm(t('update_found', '发现新版本 {ver}！\n点击确定立即下载。', {ver: data.latest}))) performUpdate(data.download_url);
+                }
+            } else {
+                console.log("当前已是最新版本。");
+                if (isManual) showToast(t('update_latest', '当前已是最新版本！'), 'success');
+            }
+        } catch (e) {
+            console.error("检查更新请求失败:", e);
+            if (isManual) showToast('检查更新失败，请检查网络连接。', 'error');
+        }
     }
 
     async function performUpdate(url) {
@@ -326,7 +363,7 @@
         } catch(e) { showToast('Update request failed', 'error'); }
     }
 
-    // ==================== 功能函数 ====================
+    // ==================== 基础功能 ====================
     function launchSteam() { window.location.href = 'steam://rungameid/1017180'; }
     async function launchExe() {
         const path = document.getElementById('exe-path').value;
@@ -392,7 +429,7 @@
         document.getElementById('license-box').value = await lic.text();
     }
 
-    // ==================== 多选 ====================
+    // ==================== 浏览页多选 ====================
     function toggleSelect(filename) {
         if (selectedMods.has(filename)) selectedMods.delete(filename); else selectedMods.add(filename);
         updateBatchBar();
@@ -409,6 +446,7 @@
         const bar = document.getElementById('batch-bar');
         if (selectedMods.size > 0) bar.classList.add('active'); else bar.classList.remove('active');
     }
+
     async function batchInstall() {
         if (selectedMods.size === 0) return;
         const filenames = Array.from(selectedMods);
@@ -422,6 +460,7 @@
             else showToast(`失败: ${result.error}`, 'error');
         } catch(e) { showToast('Network error', 'error'); }
     }
+
     async function batchUninstall() {
         if (selectedMods.size === 0) return;
         const modsToUninstall = allMods.filter(m => selectedMods.has(m.FileName)).map(m => m.Name);
@@ -435,6 +474,8 @@
             else showToast(`失败: ${result.error}`, 'error');
         } catch(e) {}
     }
+
+    // ==================== 已安装页多选 ====================
     function toggleSelectInstalled(name) {
         if (selectedInstalled.has(name)) selectedInstalled.delete(name); else selectedInstalled.add(name);
         updateBatchBarInstalled();
@@ -460,6 +501,7 @@
         const bar = document.getElementById('batch-bar-installed');
         if (selectedInstalled.size > 0) bar.classList.add('active'); else bar.classList.remove('active');
     }
+
     async function batchUpdate() {
         if (selectedInstalled.size === 0) return;
         const names = Array.from(selectedInstalled);
@@ -473,6 +515,7 @@
             else showToast(`失败: ${result.error}`, 'error');
         } catch(e) {}
     }
+
     async function batchUninstallInstalled() {
         if (selectedInstalled.size === 0) return;
         const names = Array.from(selectedInstalled);
@@ -486,7 +529,7 @@
         } catch(e) {}
     }
 
-    // ==================== 事件委托 ====================
+    // ==================== 事件委托与操作 ====================
     function setupDelegation() {
         ['mod-list', 'modpack-list', 'installed-list'].forEach(listId => {
             document.getElementById(listId).addEventListener('click', e => {
@@ -780,20 +823,21 @@
 
     // 回到顶部
     const backToTopBtn = document.getElementById('back-to-top');
-    document.querySelector('.main-content').addEventListener('scroll', function() {
+    const mainContent = document.querySelector('.main-content');
+    mainContent.addEventListener('scroll', function() {
         if (this.scrollTop > 300) backToTopBtn.style.display = 'flex';
         else backToTopBtn.style.display = 'none';
     });
-    backToTopBtn.onclick = () => document.querySelector('.main-content').scrollTo({top: 0, behavior: 'smooth'});
+    backToTopBtn.onclick = () => mainContent.scrollTo({top: 0, behavior: 'smooth'});
 
-    // ==================== 启动 (已修复：添加 checkUpdate) ====================
+    // ==================== 启动 (含自动检查更新) ====================
     initLanguage().then(() => {
         loadConfig();
         loadSources().then(() => {
             loadMods(currentBrowseSource);
             loadModpacks(currentModpackSource);
             loadInstalled(currentManageSource);
-            checkUpdate(); // <--- 这里是关键修复，启动时检查更新
+            checkUpdate(); // 启动时静默检查更新
         });
         setupDelegation();
     });
