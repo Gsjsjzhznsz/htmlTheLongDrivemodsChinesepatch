@@ -14,14 +14,13 @@ import io
 import requests
 import urllib3
 from pathlib import Path
-from urllib.parse import urlparse
 from flask import Flask, jsonify, render_template, request, send_from_directory, send_file
 
 # 屏蔽警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==================== 版本配置 ====================
-CURRENT_VERSION = "v3.0"
+CURRENT_VERSION = "v2.0"
 GITHUB_REPO = "Gsjsjzhznsz/htmlTheLongDrivemodsChinesepatch"
 
 if sys.platform == 'win32':
@@ -332,6 +331,41 @@ def api_batch_install():
         else: results.append(f"❌ {mod_name}: {msg}")
     return jsonify({"success": True, "results": results})
 
+# 新增：批量卸载
+@app.route("/api/batch-uninstall", methods=["POST"])
+def api_batch_uninstall():
+    data = request.json
+    names = data.get("names", [])
+    results = []
+    for name in names:
+        ok, msg = uninstall_mod(name)
+        if ok: results.append(f"✅ {name}: 卸载成功")
+        else: results.append(f"❌ {name}: {msg}")
+    return jsonify({"success": True, "results": results})
+
+# 新增：批量更新
+@app.route("/api/batch-update", methods=["POST"])
+def api_batch_update():
+    data = request.json
+    names = data.get("names", [])
+    source = data.get("source", 0)
+    all_mods, _ = load_data_from_source(MODLIST_SOURCES, source)
+    installed = get_installed_mods()
+    results = []
+    
+    for name in names:
+        mod = next((m for m in all_mods if m.get("Name") == name), None)
+        if not mod: results.append(f"❌ {name}: 未找到"); continue
+        
+        uninstall_mod(name)
+        ok, msg = install_mod(mod, installed)
+        if ok: 
+            installed[mod.get("Name")] = msg
+            results.append(f"✅ {name}: 更新成功 -> v{msg}")
+        else: results.append(f"❌ {name}: {msg}")
+        
+    return jsonify({"success": True, "results": results})
+
 @app.route("/api/uninstall", methods=["POST"])
 def api_uninstall():
     name = request.json.get("name")
@@ -397,7 +431,6 @@ def api_check_update():
         url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
         headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "TLD-Installer"}
         
-        # 检查更新时也做双重尝试
         try:
             resp = requests.get(url, headers=headers, timeout=10)
         except Exception:
@@ -440,10 +473,6 @@ def api_check_update():
 
 @app.route("/api/do-update", methods=["POST"])
 def api_do_update():
-    """
-    执行应用程序更新
-    修复了更新完成后主程序无法自动启动的问题
-    """
     data = request.json
     download_url = data.get("url")
     backup_name = data.get("backup_name", "ModpackManager_old.exe")
@@ -454,31 +483,23 @@ def api_do_update():
     temp_dir = tempfile.gettempdir()
     new_exe_path = os.path.join(temp_dir, "ModpackManager_new.exe")
     
-    # --- 下载逻辑 (双重尝试机制) ---
     download_success = False
     error_msg = ""
     try:
-        logger.info("开始下载更新文件...")
         with requests.get(download_url, stream=True, timeout=60) as r:
             r.raise_for_status()
             with open(new_exe_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192): 
-                    f.write(chunk)
+                for chunk in r.iter_content(chunk_size=8192): f.write(chunk)
         download_success = True
-        logger.info("新版本下载成功")
     except Exception as e:
-        logger.warning(f"第一次下载尝试失败: {str(e)}")
         try:
             with requests.get(download_url, stream=True, timeout=60, verify=False) as r:
                 r.raise_for_status()
                 with open(new_exe_path, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=8192): 
-                        f.write(chunk)
+                    for chunk in r.iter_content(chunk_size=8192): f.write(chunk)
             download_success = True
-            logger.info("跳过证书验证下载成功")
         except Exception as e2:
             error_msg = str(e2)
-            logger.error(f"下载彻底失败: {error_msg}")
             
     if not download_success:
         return jsonify({"error": f"下载失败: {error_msg}"}), 500
@@ -489,7 +510,6 @@ def api_do_update():
         new_exe_final = os.path.join(current_dir, "ModpackManager.exe")
         old_exe_final = os.path.join(current_dir, backup_name)
         
-        # 修复后的批处理脚本 - 确保自动启动新版本
         bat_content = f'''@echo off
 chcp 65001 >nul
 title TLD Mod Installer - Updater
@@ -501,7 +521,6 @@ echo.
 echo  [1/3] Download complete.
 echo  [2/3] Waiting for program to exit...
 
-:: 等待主程序完全退出
 :wait_process
 tasklist /fi "pid eq {os.getpid()}" 2>NUL | find "{os.getpid()}" >NUL
 if "%ERRORLEVEL%"=="0" (
@@ -510,15 +529,8 @@ if "%ERRORLEVEL%"=="0" (
 )
 
 echo  Program closed. Replacing files...
+if exist "{old_exe_final}" del /f /q "{old_exe_final}" 2>nul
 
-:: 删除旧备份（如果存在）
-if exist "{old_exe_final}" (
-    echo  Removing old backup...
-    del /f /q "{old_exe_final}" 2>nul
-)
-
-:: 重命名当前程序为备份
-echo  Creating backup...
 :retry_rename
 rename "{current_exe}" "{backup_name}" 2>nul
 if exist "{current_exe}" (
@@ -526,71 +538,32 @@ if exist "{current_exe}" (
     goto retry_rename
 )
 
-:: 移动新程序到目标位置
-echo  Installing new version...
 move /y "{new_exe_path}" "{new_exe_final}" 2>nul
 
-:: 验证文件是否成功移动
 if not exist "{new_exe_final}" (
-    echo  ERROR: Failed to install new version!
-    echo  Please check file permissions and try again.
-    echo.
-    echo  Press any key to exit...
-    pause >nul
+    echo  ERROR: Failed to install!
+    pause
     exit /b 1
 )
 
 echo  [3/3] Starting new version...
-
-:: 等待文件系统同步
 timeout /t 2 /nobreak >nul
 
-:: 切换到目标目录并启动程序
-cd /d "{current_dir}" 2>nul
+cd /d "{current_dir}"
+start "" "{new_exe_final}"
 
-:: 尝试多种方式启动新程序
-if exist "{new_exe_final}" (
-    echo  Launching ModpackManager.exe...
-    start "" /D "{current_dir}" "{new_exe_final}"
-    
-    :: 备用启动方式
-    if errorlevel 1 (
-        start "" "{new_exe_final}"
-    )
-)
-
-:: 等待程序启动
-timeout /t 1 /nobreak >nul
-
-:: 清理临时文件
-if exist "{new_exe_path}" del /f /q "{new_exe_path}" 2>nul
-
-echo.
-echo  ==========================================
-echo  Update completed successfully!
-echo  ==========================================
-echo.
-echo  If the program didn't start automatically,
-echo  please manually run: ModpackManager.exe
-echo.
-echo  This window will close in 5 seconds...
 timeout /t 5 /nobreak >nul
 exit
 '''
-        
         bat_path = os.path.join(temp_dir, "update_tld.bat")
-        with open(bat_path, "w", encoding="gbk") as f: 
-            f.write(bat_content)
+        with open(bat_path, "w", encoding="gbk") as f: f.write(bat_content)
         
-        # 启动更新脚本（在新的控制台窗口中）
         subprocess.Popen(['cmd', '/c', bat_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
         
-        # 强制关闭当前 Python 进程
         def shutdown_self():
-            time.sleep(0.5)  # 等待 0.5 秒确保响应已发送
+            time.sleep(0.5)
             print("正在关闭主程序以完成更新...")
             logger.info("正在关闭主程序以完成更新...")
-            # 强制退出
             os._exit(0)
         
         threading.Thread(target=shutdown_self, daemon=True).start()
