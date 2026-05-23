@@ -1,846 +1,713 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <title>TLD Mod Installer</title>
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='tld.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        /* 确保回到顶部按钮显示正常 */
-        #back-to-top {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #2a2a36;
-            color: #fff;
-            border: 1px solid #3f3f4e;
-            font-size: 24px;
-            cursor: pointer;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-        #back-to-top:hover { background: #3f3f4e; transform: scale(1.05); }
-        body.sidebar-collapsed #back-to-top { right: 80px; }
-        .sidebar.collapsed .btn-text, .sidebar.collapsed .menu-text { display: none; }
-        .sidebar.collapsed .sidebar-btn { justify-content: center; }
-        /* 批量操作栏激活样式 */
-        .batch-bar.active { transform: translateY(0); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TLD Mod Installer</title>
+  <link rel="icon" href="/static/tld.ico">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <!-- 左侧导航栏 (重构布局: 导航列表在上, 操作按钮在下) -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <span class="logo-icon">🚗</span>
-            <span class="logo-text" data-i18n="app_title">TLD Manager</span>
-        </div>
 
-        <ul class="nav-list">
-            <li class="nav-item active" data-tab="browse"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg><span class="menu-text" data-i18n="browse_mods">📦 浏览模组</span></li>
-            <li class="nav-item" data-tab="modpacks"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm0 14H4V4h16v12z"/></svg><span class="menu-text" data-i18n="modpacks">📚 模组包</span></li>
-            <li class="nav-item" data-tab="manage"><svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg><span class="menu-text" data-i18n="installed_mods">🔧 已安装</span></li>
-            <li class="nav-item" data-tab="settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg><span class="menu-text" data-i18n="settings">⚙️ 设置</span></li>
-            <li class="nav-item" data-tab="about"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg><span class="menu-text" data-i18n="about">ℹ️ 关于</span></li>
-        </ul>
-
-        <!-- 操作按钮推到底部 -->
-        <div class="sidebar-actions">
-            <button class="sidebar-btn primary" onclick="launchSteam()" title="Launch Steam"><span>🎮</span><span class="btn-text" data-i18n="launch_game">启动游戏</span></button>
-            <button class="sidebar-btn primary" onclick="launchExe()" title="Launch EXE"><span>🚀</span><span class="btn-text" data-i18n="launch_exe">启动 EXE</span></button>
-            <button class="sidebar-btn secondary" onclick="installPatcher()" title="Install Patcher"><span>🔧</span><span class="btn-text" data-i18n="install_patcher">安装加载器</span></button>
-            <button class="sidebar-btn secondary" onclick="download1000Cheat()" title="1000km Cheat"><span>📏</span><span class="btn-text" data-i18n="cheat_1000km">改1000公里</span></button>
-        </div>
-
-        <div class="sidebar-footer"><button class="sidebar-toggle" onclick="toggleSidebar()">☰</button></div>
-    </div>
-
-    <!-- 主内容区 -->
-    <div class="main-content">
-        <div class="container">
-            <!-- 浏览模组 Tab -->
-            <div id="browse-tab" class="tab-content active">
-                <div class="top-bar">
-                    <div class="source-selector">
-                        <label data-i18n="data_source">📡 源:</label>
-                        <select id="source-select"></select>
-                        <label style="margin-left: 15px; font-size: 0.8rem; color: #aaa;">
-                            <input type="checkbox" id="strict-mode" style="width: auto; margin-right: 5px;">
-                            <span data-i18n="strict_mode">严格模式</span>
-                        </label>
-                    </div>
-                    <div class="view-toggle">
-                        <button class="view-btn" onclick="selectAll()" data-i18n="select_all">全选</button>
-                        <button class="view-btn" onclick="invertSelection()" data-i18n="invert_selection">反选</button>
-                        <button class="view-btn" onclick="clearSelection()" data-i18n="clear_selection">已选(<span id="selected-count">0</span>)</button>
-                        <button id="grid-view-btn" class="view-btn active" data-i18n="grid_view">卡片</button>
-                        <button id="list-view-btn" class="view-btn" data-i18n="list_view">列表</button>
-                    </div>
-                </div>
-                <div class="filters">
-                    <input type="text" id="search" class="search-input" data-i18n-placeholder="search_placeholder">
-                    <select id="category" class="category-select"><option value="" data-i18n="all_categories">所有分类</option></select>
-                </div>
-                <div id="mod-list" class="mod-grid"></div>
-            </div>
-
-            <!-- 模组包 Tab -->
-            <div id="modpacks-tab" class="tab-content">
-                <div class="top-bar">
-                    <div class="source-selector">
-                        <label data-i18n="data_source">📡 源:</label>
-                        <select id="modpack-source-select"></select>
-                    </div>
-                    <div class="view-toggle">
-                        <button class="view-btn" onclick="exportModpack()" data-i18n="export">📤 导出</button>
-                        <button class="view-btn" onclick="document.getElementById('import-file').click()" data-i18n="import">📥 导入</button>
-                        <input type="file" id="import-file" hidden accept=".txt" onchange="importModpack(this)">
-                    </div>
-                </div>
-                <div id="modpack-list" class="mod-grid"></div>
-            </div>
-
-            <!-- 已安装 Tab -->
-            <div id="manage-tab" class="tab-content">
-                <div class="top-bar">
-                    <div class="source-selector">
-                        <label data-i18n="data_source">📡 源:</label>
-                        <select id="manage-source-select"></select>
-                    </div>
-                    <div class="view-toggle">
-                        <button class="view-btn" onclick="selectAllInstalled()" data-i18n="select_all">全选</button>
-                        <button class="view-btn" onclick="invertSelectionInstalled()" data-i18n="invert_selection">反选</button>
-                        <button class="view-btn" onclick="clearSelectionInstalled()" data-i18n="clear_selection">已选(<span id="selected-installed-count">0</span>)</button>
-                    </div>
-                </div>
-                <div id="installed-list" class="mod-grid"></div>
-            </div>
-
-            <!-- 设置 Tab -->
-            <div id="settings-tab" class="tab-content">
-                <div class="settings-section">
-                    <h3 data-i18n="update_settings">🔄 更新设置</h3>
-                    <div class="setting-row">
-                        <button class="action-btn primary" onclick="manualCheckUpdate()" data-i18n="manual_check">🔍 手动检查更新</button>
-                    </div>
-                    <div class="setting-row">
-                        <label data-i18n="enable_proxy">启用 GitHub 加速源:</label>
-                        <input type="checkbox" id="use-proxy" style="width: auto;">
-                        <span style="color:#aaa; font-size:0.8rem;" data-i18n="proxy_recommend">(推荐国内用户开启)</span>
-                    </div>
-                    <div class="setting-row">
-                        <label data-i18n="backup_filename">旧版本备份文件名:</label>
-                        <input type="text" id="backup-name" data-i18n-placeholder="backup_placeholder">
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3 data-i18n="ui_theme">🎨 界面设置</h3>
-                    <div class="setting-row">
-                        <label data-i18n="bg_color">背景颜色:</label>
-                        <input type="color" id="bg-color" value="#12121a">
-                        <button class="action-btn secondary" onclick="resetTheme()" style="margin-left: 10px;" data-i18n="reset_default">重置默认</button>
-                    </div>
-                    <button class="action-btn primary" onclick="applyTheme()" data-i18n="apply_theme">应用主题</button>
-                </div>
-                
-                <div class="settings-section">
-                    <h3 data-i18n="language_settings">🌐 语言设置</h3>
-                    <div class="setting-row">
-                        <label data-i18n="ui_language">界面语言:</label>
-                        <select id="lang-select" onchange="changeLanguage(this.value)">
-                            <option value="auto" data-i18n="auto_system">自动</option>
-                            <option value="zh">中文</option>
-                            <option value="en">English</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3 data-i18n="launch_settings">🚀 启动设置</h3>
-                    <div class="setting-row">
-                        <label data-i18n="game_exe_path">游戏 EXE 路径:</label>
-                        <input type="text" id="exe-path" data-i18n-placeholder="exe_path_placeholder">
-                        <button class="action-btn secondary" onclick="browseExe()" style="margin-left:10px;" data-i18n="browse">浏览</button>
-                    </div>
-                    <button class="action-btn primary" onclick="saveSettings()" data-i18n="save_settings">保存设置</button>
-                </div>
-            </div>
-            
-            <!-- 关于 Tab -->
-            <div id="about-tab" class="tab-content">
-                 <div class="settings-section">
-                    <h3 data-i18n="about_title">ℹ️ 关于本项目</h3>
-                    <p style="color:#ccc; line-height:1.6;">TLD Mod Installer 由yiqiu开发。</p>
-                    <p style="color:#ccc; line-height:1.6;">联系方式qq群661726941。</p>
-                    <p style="color:#ccc; line-height:1.6;">email: 2308534727@qq.com</p>
-                    <p style="color:#4caf50; margin-top:10px;">许可证: AGPL-3.0</p>
-                    <p style="color:#888; margin-top:5px;">当前版本: {{ version }}</p>
-                </div>
-                <div class="settings-section">
-                    <h3 data-i18n="license">📄 许可证详情</h3>
-                    <textarea id="license-box" style="width:100%; height:300px; background:#0f0f17; color:#ccc; border:1px solid #2a2a36; padding:10px;" readonly>Loading...</textarea>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 悬浮组件 -->
-    <div id="download-manager" class="download-manager">
-        <div class="download-header"><span>📥 <span data-i18n="download_tasks">任务</span> (<span id="task-count">0</span>)</span></div>
-        <div id="task-list" class="task-list" style="display:none;"></div>
-    </div>
-    <div id="batch-bar" class="batch-bar">
-        <span data-i18n="selected_items">已选择 <span id="batch-count">0</span> 个模组</span>
-        <button class="action-btn primary" onclick="batchInstall()" data-i18n="batch_install">批量安装</button>
-        <button class="action-btn secondary" onclick="batchUninstall()" data-i18n="batch_uninstall">批量卸载</button>
-        <button class="action-btn secondary" onclick="clearSelection()" data-i18n="cancel">取消</button>
-    </div>
-    <div id="batch-bar-installed" class="batch-bar">
-        <span data-i18n="selected_items">已选择 <span id="batch-installed-count">0</span> 个模组</span>
-        <button class="action-btn primary" onclick="batchUpdate()" data-i18n="batch_update">批量更新</button>
-        <button class="action-btn secondary" onclick="batchUninstallInstalled()" data-i18n="batch_uninstall">批量卸载</button>
-        <button class="action-btn secondary" onclick="clearSelectionInstalled()" data-i18n="cancel">取消</button>
-    </div>
-    <button id="back-to-top" title="Back to Top">↑</button>
-    
-    <!-- 模态框 -->
-    <div id="mod-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div class="modal-image"><img id="modal-picture" src="" alt="Mod Image"></div>
-            <h2 id="modal-title"></h2>
-            <p><strong data-i18n="author">作者:</strong> <span id="modal-author"></span></p>
-            <p><strong data-i18n="version">版本:</strong> <span id="modal-version"></span></p>
-            <div id="modal-description" class="modal-description"></div>
-            <div class="modal-actions">
-                <button id="modal-install-btn" class="install" data-i18n="install">安装</button>
-                <button id="modal-uninstall-btn" class="uninstall" style="display:none;" data-i18n="uninstall">卸载</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="modpack-result-modal" class="modal">
-        <div class="modal-content" style="max-width: 600px;">
-            <span class="close-result">&times;</span>
-            <h3 data-i18n="operation_result">📦 操作结果</h3>
-            <div id="modpack-result-list" style="max-height: 400px; overflow-y: auto; margin-top: 12px;"></div>
-            <div style="text-align: right; margin-top: 16px;"><button id="close-result-btn" class="install" data-i18n="close">关闭</button></div>
-        </div>
-    </div>
-    
-    <div id="toast-container" class="toast-container"></div>
+<script type="application/json" id="flask-data">
+{
+  "version": {{ version | tojson }},
+  "translations": {{ translations | tojson }}
+}
+</script>
 
 <script>
-    // ==================== 语言与工具 ====================
-    let translations = {};
-    
-    async function initLanguage() {
-        let lang = localStorage.getItem('lang');
-        if (!lang || lang === 'auto') {
-            const navLang = navigator.language.split('-')[0];
-            const supported = ['zh', 'en'];
-            lang = supported.includes(navLang) ? navLang : 'en';
-        }
-        document.getElementById('lang-select').value = localStorage.getItem('lang') || 'auto';
-        await loadTranslations(lang);
-        applyTranslations();
-    }
-
-    async function loadTranslations(lang) {
-        try {
-            const res = await fetch(`/api/translations?lang=${lang}`);
-            translations = await res.json();
-        } catch (e) { console.error('Failed to load lang', e); }
-    }
-
-    function applyTranslations() {
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (!translations[key]) return;
-            const textSpan = el.querySelector('.btn-text, .menu-text');
-            if (textSpan) { textSpan.textContent = translations[key]; return; }
-            // 保留原有图标等子元素
-            for (let node of el.childNodes) {
-                if (node.nodeType === Node.TEXT_NODE) { node.textContent = translations[key]; break; }
-            }
-            if (!el.hasChildNodes() || el.children.length === 0) el.textContent = translations[key];
-        });
-        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-            const key = el.getAttribute('data-i18n-placeholder');
-            if (translations[key]) el.placeholder = translations[key];
-        });
-    }
-
-    function t(key, defaultText, args = {}) {
-        let text = translations[key] || defaultText;
-        Object.keys(args).forEach(k => { text = text.replace(new RegExp(`{${k}}`, 'g'), args[k]); });
-        return text;
-    }
-
-    async function changeLanguage(val) {
-        localStorage.setItem('lang', val);
-        if (val === 'auto') { location.reload(); return; }
-        await loadTranslations(val);
-        applyTranslations();
-        filterMods(); loadInstalled(currentManageSource); loadModpacks(currentModpackSource);
-    }
-
-    // ==================== 核心变量 ====================
-    let allMods = [];
-    let currentBrowseSource = 0;
-    let currentModpackSource = 0;
-    let currentManageSource = 0;
-    let currentView = 'grid';
-    
-    let selectedMods = new Set();
-    let selectedInstalled = new Set();
-
-    const showToast = (msg, type='info') => {
-        const c = document.getElementById('toast-container');
-        const t = document.createElement('div'); t.className = `toast ${type}`; t.innerHTML = msg; c.appendChild(t);
-        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 5000);
-    };
-    
-    const escapeHtml = (s) => s ? s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;") : '';
-    const noImageSvg = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiMyYTJhMzYiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+";
-
-    // ==================== 更新功能 (自动检查) ====================
-    async function manualCheckUpdate() {
-        showToast(t('checking_update', '正在检查更新...'), 'info');
-        await checkUpdate(true);
-    }
-
-    async function checkUpdate(isManual = false) {
-        try {
-            console.log("正在检查更新...");
-            const res = await fetch('/api/check-update');
-            const data = await res.json();
-            console.log("更新检查结果:", data);
-            if (data.update_available) {
-                showToast(`<div style="color:#fff">🚀 发现新版本 <b>${data.latest}</b>！<br><span style="font-size:0.8rem; opacity:0.8">请前往设置手动更新</span></div>`, 'warning');
-                // 如果是手动检查，可以进一步提示下载
-                if (isManual) {
-                    if (confirm(t('update_found', '发现新版本 {ver}！\n点击确定立即下载。', {ver: data.latest}))) performUpdate(data.download_url);
-                }
-            } else {
-                console.log("当前已是最新版本。");
-                if (isManual) showToast(t('update_latest', '当前已是最新版本！'), 'success');
-            }
-        } catch (e) {
-            console.error("检查更新请求失败:", e);
-            if (isManual) showToast('检查更新失败，请检查网络连接。', 'error');
-        }
-    }
-
-    async function performUpdate(url) {
-        const backupName = document.getElementById('backup-name').value || 'ModpackManager_old.exe';
-        try {
-            const res = await fetch('/api/do-update', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ url: url, backup_name: backupName })
-            });
-            const result = await res.json();
-            if (result.success) {
-                document.querySelector('.sidebar').style.display = 'none';
-                document.querySelector('.main-content').innerHTML = `
-                    <div style="text-align: center; padding: 50px; color: white;">
-                        <h1 style="font-size: 3em; margin-bottom: 20px;">✅ ${t('update_downloaded', '更新已下载')}</h1>
-                        <p style="font-size: 1.5em; color: #ccc;">${t('update_close_hint', '请关闭此窗口以完成安装。')}</p>
-                    </div>`;
-                setTimeout(() => { window.close(); }, 500);
-            } else showToast(t('update_failed', '更新失败') + ': ' + result.error, 'error');
-        } catch(e) { showToast('Update request failed', 'error'); }
-    }
-
-    // ==================== 基础功能 ====================
-    function launchSteam() { window.location.href = 'steam://rungameid/1017180'; }
-    async function launchExe() {
-        const path = document.getElementById('exe-path').value;
-        if(!path) { showToast(t('error_no_exe_path', '请配置路径'), 'error'); return; }
-        const res = await fetch('/api/launch-exe', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({path}) });
-        const data = await res.json();
-        if(data.success) showToast(t('toast_launch_success', '启动成功'), 'success'); else showToast(`${t('error_no_filename', '失败')}: ${data.error}`, 'error');
-    }
-    async function installPatcher() {
-        const res = await fetch('/api/install-patcher', { method: 'POST' });
-        const data = await res.json();
-        if(data.success) showToast(t('toast_patcher_launched', '加载器已启动'), 'success'); else showToast(`失败: ${data.error}`, 'error');
-    }
-    function download1000Cheat() { window.open("https://github.com/32bitx64bit/Thelongdrive-distance-cheat/releases/download/download/the-long-drive-distance-cheat.reg", '_blank'); }
-    
-    async function browseExe() {
-        const res = await fetch('/api/browse-exe', { method: 'POST' });
-        const data = await res.json();
-        if(data.success && data.path) { document.getElementById('exe-path').value = data.path; showToast(t('toast_select_path', '路径已选择'), 'success'); }
-        else showToast(data.error || '未选择文件', 'error');
-    }
-
-    function exportModpack() { window.location.href = '/api/export-modpack'; }
-
-    async function importModpack(input) {
-        if (input.files.length === 0) return;
-        const formData = new FormData();
-        formData.append('file', input.files[0]);
-        formData.append('source', currentModpackSource);
-        showToast('读取中...', 'info');
-        try {
-            const res = await fetch('/api/import-modpack', { method: 'POST', body: formData });
-            const result = await res.json();
-            if (res.ok) { showModpackResult(result.results); loadMods(currentBrowseSource); loadInstalled(currentManageSource); }
-            else showToast(`Failed: ${result.error}`, 'error');
-        } catch(e) { showToast('Network error', 'error'); }
-        input.value = ''; 
-    }
-    
-    function applyTheme(show_toast = true) {
-        const bg = document.getElementById('bg-color').value;
-        document.documentElement.style.setProperty('--bg-color', bg); document.body.style.background = bg;
-        localStorage.setItem('theme', JSON.stringify({bg}));
-        if (show_toast) showToast(t('toast_theme_applied', '主题已应用'), 'success');
-    }
-    function resetTheme() { document.getElementById('bg-color').value = "#12121a"; applyTheme(true); }
-    
-    async function saveSettings() {
-        const cfg = { exe_path: document.getElementById('exe-path').value, use_proxy: document.getElementById('use-proxy').checked, backup_name: document.getElementById('backup-name').value };
-        await fetch('/api/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(cfg) });
-        showToast(t('toast_settings_saved', '已保存'), 'success');
-    }
-    
-    async function loadConfig() {
-        const res = await fetch('/api/config');
-        const cfg = await res.json();
-        if(cfg.exe_path) document.getElementById('exe-path').value = cfg.exe_path;
-        if(cfg.use_proxy !== undefined) document.getElementById('use-proxy').checked = cfg.use_proxy;
-        if(cfg.backup_name) document.getElementById('backup-name').value = cfg.backup_name;
-        const theme = localStorage.getItem('theme');
-        if(theme) { const {bg} = JSON.parse(theme); document.getElementById('bg-color').value = bg; applyTheme(false); }
-        const lic = await fetch('/api/license');
-        document.getElementById('license-box').value = await lic.text();
-    }
-
-    // ==================== 浏览页多选 ====================
-    function toggleSelect(filename) {
-        if (selectedMods.has(filename)) selectedMods.delete(filename); else selectedMods.add(filename);
-        updateBatchBar();
-    }
-    function selectAll() { filterMods(false).forEach(m => selectedMods.add(m.FileName)); renderMods(filterMods(false)); updateBatchBar(); }
-    function invertSelection() {
-        filterMods(false).forEach(m => { if (selectedMods.has(m.FileName)) selectedMods.delete(m.FileName); else selectedMods.add(m.FileName); });
-        renderMods(filterMods(false)); updateBatchBar();
-    }
-    function clearSelection() { selectedMods.clear(); filterMods(); updateBatchBar(); }
-    function updateBatchBar() {
-        document.getElementById('selected-count').textContent = selectedMods.size;
-        document.getElementById('batch-count').textContent = selectedMods.size;
-        const bar = document.getElementById('batch-bar');
-        if (selectedMods.size > 0) bar.classList.add('active'); else bar.classList.remove('active');
-    }
-
-    async function batchInstall() {
-        if (selectedMods.size === 0) return;
-        const filenames = Array.from(selectedMods);
-        if (!confirm(t('confirm_batch_install', `确定要批量安装选中的 ${filenames.length} 个模组吗？`))) return;
-        showToast(t('batch_installing', '开始批量安装...'), 'info');
-        document.getElementById('task-list').style.display = 'block';
-        try {
-            const res = await fetch('/api/batch-install', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ filenames: filenames, source: currentBrowseSource }) });
-            const result = await res.json();
-            if (res.ok) { showModpackResult(result.results); loadMods(currentBrowseSource); loadInstalled(currentManageSource); clearSelection(); }
-            else showToast(`失败: ${result.error}`, 'error');
-        } catch(e) { showToast('Network error', 'error'); }
-    }
-
-    async function batchUninstall() {
-        if (selectedMods.size === 0) return;
-        const modsToUninstall = allMods.filter(m => selectedMods.has(m.FileName)).map(m => m.Name);
-        if (modsToUninstall.length === 0) return;
-        if (!confirm(t('confirm_batch_uninstall', `确定要卸载选中的 ${modsToUninstall.length} 个模组吗？`))) return;
-        showToast(t('batch_uninstalling', '正在批量卸载...'), 'info');
-        try {
-            const res = await fetch('/api/batch-uninstall', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ names: modsToUninstall }) });
-            const result = await res.json();
-            if (res.ok) { showModpackResult(result.results); loadMods(currentBrowseSource); loadInstalled(currentManageSource); clearSelection(); }
-            else showToast(`失败: ${result.error}`, 'error');
-        } catch(e) {}
-    }
-
-    // ==================== 已安装页多选 ====================
-    function toggleSelectInstalled(name) {
-        if (selectedInstalled.has(name)) selectedInstalled.delete(name); else selectedInstalled.add(name);
-        updateBatchBarInstalled();
-    }
-    function selectAllInstalled() { 
-        const installed = allMods.filter(m => m.is_installed);
-        installed.forEach(m => selectedInstalled.add(m.Name));
-        loadInstalled(currentManageSource); 
-        updateBatchBarInstalled(); 
-    }
-    function invertSelectionInstalled() {
-        const installed = allMods.filter(m => m.is_installed);
-        installed.forEach(m => {
-            if (selectedInstalled.has(m.Name)) selectedInstalled.delete(m.Name); else selectedInstalled.add(m.Name);
-        });
-        loadInstalled(currentManageSource);
-        updateBatchBarInstalled();
-    }
-    function clearSelectionInstalled() { selectedInstalled.clear(); loadInstalled(currentManageSource); updateBatchBarInstalled(); }
-    function updateBatchBarInstalled() {
-        document.getElementById('selected-installed-count').textContent = selectedInstalled.size;
-        document.getElementById('batch-installed-count').textContent = selectedInstalled.size;
-        const bar = document.getElementById('batch-bar-installed');
-        if (selectedInstalled.size > 0) bar.classList.add('active'); else bar.classList.remove('active');
-    }
-
-    async function batchUpdate() {
-        if (selectedInstalled.size === 0) return;
-        const names = Array.from(selectedInstalled);
-        if (!confirm(t('confirm_batch_update', `确定要批量更新选中的 ${names.length} 个模组吗？`))) return;
-        showToast(t('batch_updating', '开始批量更新...'), 'info');
-        document.getElementById('task-list').style.display = 'block';
-        try {
-            const res = await fetch('/api/batch-update', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ names: names, source: currentManageSource }) });
-            const result = await res.json();
-            if (res.ok) { showModpackResult(result.results); loadInstalled(currentManageSource); clearSelectionInstalled(); }
-            else showToast(`失败: ${result.error}`, 'error');
-        } catch(e) {}
-    }
-
-    async function batchUninstallInstalled() {
-        if (selectedInstalled.size === 0) return;
-        const names = Array.from(selectedInstalled);
-        if (!confirm(t('confirm_batch_uninstall', `确定要批量卸载选中的 ${names.length} 个模组吗？`))) return;
-        showToast(t('batch_uninstalling', '正在批量卸载...'), 'info');
-        try {
-            const res = await fetch('/api/batch-uninstall', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ names: names }) });
-            const result = await res.json();
-            if (res.ok) { showModpackResult(result.results); loadInstalled(currentManageSource); clearSelectionInstalled(); }
-            else showToast(`失败: ${result.error}`, 'error');
-        } catch(e) {}
-    }
-
-    // ==================== 事件委托与操作 ====================
-    function setupDelegation() {
-        ['mod-list', 'modpack-list', 'installed-list'].forEach(listId => {
-            document.getElementById(listId).addEventListener('click', e => {
-                const checkbox = e.target.closest('.multi-check');
-                if (checkbox) {
-                    if (listId === 'installed-list') toggleSelectInstalled(checkbox.dataset.name);
-                    else toggleSelect(checkbox.dataset.filename);
-                    return;
-                }
-
-                const btn = e.target.closest('button');
-                const card = e.target.closest('.mod-card');
-                if (btn) {
-                    e.preventDefault(); e.stopPropagation();
-                    if (btn.disabled) return;
-                    const data = card ? JSON.parse(card.dataset.mod) : {};
-                    if (btn.classList.contains('install')) return installMod(btn, data, card);
-                    if (btn.classList.contains('uninstall') || btn.classList.contains('uninstall-manage')) return uninstallMod(btn, data, card);
-                    if (btn.classList.contains('update-manage')) return updateMod(btn, data, card);
-                    if (btn.classList.contains('install-modpack')) return installModpack(btn, data, card);
-                } else if (card) { try { showModal(JSON.parse(card.dataset.mod)); } catch (err) {} }
-            });
-        });
-    }
-
-    async function installMod(btn, data, card) {
-        if (!data.FileName) return;
-        btn.disabled = true; btn.textContent = t('loading', '安装中...');
-        document.getElementById('task-list').style.display = 'block';
-        try {
-            const res = await fetch('/api/install', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ filename: data.FileName, source: currentBrowseSource }) });
-            const result = await res.json();
-            if (res.ok) { 
-                showToast(`✅ ${data.Name} ${t('toast_install_success', '安装成功')}`, 'success'); 
-                loadInstalled(currentManageSource);
-                updateCardState(card, data, true, result.new_version); 
-            }
-            else {
-                if (result.error.includes("Already installed")) { showToast(`${data.Name} 已安装`, 'info'); updateCardState(card, data, true); }
-                else { showToast(`❌ 失败: ${result.error}`, 'error'); btn.textContent = '安装'; btn.disabled = false; }
-            }
-        } catch (e) { showToast('Network error', 'error'); btn.textContent = '安装'; btn.disabled = false; }
-    }
-
-    async function uninstallMod(btn, data, card) {
-        if (!data.Name) return;
-        if (!confirm(t('confirm_uninstall', `确定卸载 ${data.Name} 吗?`))) return;
-        btn.disabled = true; btn.textContent = t('loading', '卸载中...');
-        try {
-            const res = await fetch('/api/uninstall', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: data.Name }) });
-            const result = await res.json();
-            if (result.success) {
-                showToast(`✅ ${data.Name} 已卸载`, 'success');
-                const inManageTab = document.getElementById('manage-tab').classList.contains('active');
-                if (inManageTab) {
-                    setTimeout(() => { loadInstalled(currentManageSource); clearSelectionInstalled(); }, 100);
-                } else { 
-                    updateCardState(card, data, false); 
-                    loadInstalled(currentManageSource);
-                }
-            } else { showToast(`❌ ${result.error}`, 'error'); btn.textContent = '卸载'; btn.disabled = false; }
-        } catch(e) {}
-    }
-
-    async function updateMod(btn, data, card) {
-        btn.disabled = true; btn.textContent = t('loading', '更新中...');
-        document.getElementById('task-list').style.display = 'block';
-        try {
-            const res = await fetch('/api/update', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: data.Name, source: currentManageSource }) });
-            const result = await res.json();
-            if (result.success) {
-                showToast(`✅ 更新成功`, 'success');
-                loadInstalled(currentManageSource);
-                clearSelectionInstalled();
-            } else { showToast(`❌ Failed: ${result.error}`, 'error'); btn.textContent = '更新'; btn.disabled = false; }
-        } catch(e) {}
-    }
-
-    async function installModpack(btn, data, card) {
-        if (!confirm(t('confirm_modpack_install', `确定安装模组包 ${data.Name} 吗?`))) return;
-        btn.disabled = true; btn.textContent = t('loading', '安装中...');
-        try {
-            const res = await fetch('/api/install-modpack', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ...data, source: currentModpackSource }) });
-            const result = await res.json();
-            if (res.ok) { showModpackResult(result.results); loadMods(currentBrowseSource); loadInstalled(currentManageSource); }
-            else showToast(`Failed: ${result.error}`, 'error');
-        } catch(e) { showToast('Network error', 'error'); }
-        btn.disabled = false; btn.textContent = `📦 ${t('install', '安装')}`;
-    }
-
-    function updateCardState(card, data, isInstalled, newVersion = null) {
-        if (!card) return;
-        const actionsDiv = card.querySelector('.mod-actions');
-        if (!actionsDiv) return;
-        const name = data.Name;
-        if (isInstalled) actionsDiv.innerHTML = `<button class="uninstall">${t('uninstall', '卸载')}</button>`;
-        else actionsDiv.innerHTML = `<button class="install">${t('install', '安装')}</button>`;
-        const versionP = card.querySelector('.version');
-        if (versionP && newVersion) versionP.innerHTML = `${t('installed', '已装')}: ${escapeHtml(newVersion)} | ${t('latest', '最新')}: ${escapeHtml(data.Version || '?')}`;
-        const modIndex = allMods.findIndex(m => m.Name === name);
-        if (modIndex > -1) { allMods[modIndex].is_installed = isInstalled; if(newVersion) allMods[modIndex].installed_version = newVersion; }
-    }
-
-    // ==================== 数据加载 ====================
-    async function loadSources() {
-        const res = await fetch('/api/sources');
-        const sources = await res.json();
-        const fill = (id, key, def) => {
-            const sel = document.getElementById(id);
-            sel.innerHTML = sources.map(s => `<option value="${s.index}">${escapeHtml(s.name)}</option>`).join('');
-            const val = localStorage.getItem(key) !== null ? parseInt(localStorage.getItem(key)) : def;
-            sel.value = sources.some(s => s.index === val) ? val : 0;
-            return parseInt(sel.value);
-        };
-        currentBrowseSource = fill('source-select', 'sel_browse', 0);
-        currentModpackSource = fill('modpack-source-select', 'sel_pack', 0);
-        currentManageSource = fill('manage-source-select', 'sel_manage', 0);
-    }
-
-    async function loadMods(source, silent=false) {
-        if(!silent) document.getElementById('mod-list').innerHTML = `<div class="loading">${t('loading', '加载中...')}</div>`;
-        const strict = document.getElementById('strict-mode').checked;
-        const res = await fetch(`/api/mods?source=${source}&strict=${strict}`);
-        const data = await res.json();
-        allMods = data.mods;
-        renderMods(filterMods(false));
-        updateCategories();
-    }
-
-    function filterMods(render=true) {
-        const term = document.getElementById('search').value.toLowerCase();
-        const cat = document.getElementById('category').value;
-        const filtered = allMods.filter(m => (m.Name.toLowerCase().includes(term) || (m.Author||'').toLowerCase().includes(term)) && (!cat || m.Category === cat));
-        if(render) renderMods(filtered);
-        return filtered;
-    }
-
-    function renderMods(mods) {
-        const container = document.getElementById('mod-list');
-        container.className = currentView === 'grid' ? 'mod-grid' : 'mod-list';
-        if (!mods.length) return container.innerHTML = `<div class="info">${t('no_mods_found', '无结果')}</div>`;
-        container.innerHTML = mods.map(m => `
-            <div class="mod-card-wrapper">
-                <input type="checkbox" class="multi-check" data-filename="${m.FileName}" ${selectedMods.has(m.FileName) ? 'checked' : ''}>
-                <div class="mod-card" data-mod="${escapeHtml(JSON.stringify(m))}">
-                    <div class="mod-image"><img src="${m.PictureLink || ''}" loading="lazy" onerror="this.src='${noImageSvg}'"></div>
-                    <div class="mod-info">
-                        <h3>${escapeHtml(m.Name)}</h3>
-                        <p class="author">${t('author', '作者')}: ${escapeHtml(m.Author || '?')}</p>
-                        <p class="version">${t('version', '版本')}: ${escapeHtml(m.Version || '?')}</p>
-                        <p class="desc">${escapeHtml((m.Description||'').substring(0,80))}</p>
-                        <div class="mod-actions">${m.is_installed ? `<button class="uninstall">${t('uninstall', '卸载')}</button>` : `<button class="install">${t('install', '安装')}</button>`}</div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function updateCategories() {
-        const cats = new Set();
-        allMods.forEach(m => { if(m.Category) cats.add(m.Category); });
-        const sel = document.getElementById('category');
-        sel.innerHTML = `<option value="" data-i18n="all_categories">${t('all_categories', '所有分类')}</option>` + Array.from(cats).sort().map(c => `<option value="${c}">${c}</option>`).join('');
-    }
-
-    async function loadInstalled(source, silent=false) {
-        const container = document.getElementById('installed-list');
-        if(!silent) container.innerHTML = `<div class="loading">${t('loading', '加载中...')}</div>`;
-        const res = await fetch(`/api/mods?source=${source}&_t=${Date.now()}`);
-        const data = await res.json();
-        allMods = data.mods; 
-        const installed = data.mods.filter(m => m.is_installed);
-        if(!installed.length) { if(!silent) container.innerHTML = `<div class="info">${t('no_mods_found', '未安装')}</div>`; return; }
-        container.innerHTML = installed.map(m => `
-            <div class="mod-card-wrapper">
-                <input type="checkbox" class="multi-check" data-name="${m.Name}" ${selectedInstalled.has(m.Name) ? 'checked' : ''}>
-                <div class="mod-card" data-mod="${escapeHtml(JSON.stringify(m))}">
-                    <div class="mod-image"><img src="${m.PictureLink || ''}" loading="lazy" onerror="this.src='${noImageSvg}'"></div>
-                    <div class="mod-info">
-                        <h3>${escapeHtml(m.Name)}</h3>
-                        <p class="version">${t('installed', '已装')}: ${escapeHtml(m.installed_version || '?')} | ${t('latest', '最新')}: ${escapeHtml(m.Version || '?')}</p>
-                        <div class="mod-actions">
-                            <button class="uninstall-manage">${t('uninstall', '卸载')}</button>
-                            <button class="update-manage" ${m.installed_version !== m.Version && m.Version ? '' : 'disabled'}>${m.installed_version !== m.Version && m.Version ? t('update', '更新') : t('latest', '最新')}</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-        updateBatchBarInstalled();
-    }
-
-    async function loadModpacks(source) {
-        const container = document.getElementById('modpack-list');
-        container.innerHTML = `<div class="loading">${t('loading', '加载中...')}</div>`;
-        const res = await fetch(`/api/modpacks?source=${source}`);
-        const data = await res.json();
-        if (!data.modpacks.length) return container.innerHTML = `<div class="info">${t('no_mods_found', '无模组包')}</div>`;
-        container.innerHTML = data.modpacks.map(p => `
-            <div class="mod-card" data-mod="${escapeHtml(JSON.stringify(p))}">
-                <div class="mod-image"><img src="${p.PictureLink || ''}" loading="lazy" onerror="this.src='${noImageSvg}'"></div>
-                <div class="mod-info">
-                    <h3>${escapeHtml(p.Name)}</h3>
-                    <div class="mod-actions"><button class="install-modpack">📦 ${t('install', '安装')}</button></div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // ==================== 模态框 ====================
-    const modal = document.getElementById('mod-modal');
-    let currentModalMod = null;
-    function showModal(m) {
-        currentModalMod = m;
-        document.getElementById('modal-picture').src = m.PictureLink || '';
-        document.getElementById('modal-title').textContent = m.Name;
-        document.getElementById('modal-author').textContent = m.Author || '?';
-        document.getElementById('modal-version').textContent = m.Version || '?';
-        document.getElementById('modal-description').innerHTML = (m.Description || '').replace(/\n/g, '<br>');
-        const insBtn = document.getElementById('modal-install-btn');
-        const unBtn = document.getElementById('modal-uninstall-btn');
-        if (m.is_installed) { insBtn.style.display = 'none'; unBtn.style.display = 'inline-block'; }
-        else { insBtn.style.display = 'inline-block'; unBtn.style.display = 'none'; }
-        modal.style.display = 'block';
-    }
-    document.querySelector('.close').onclick = () => modal.style.display = 'none';
-    window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
-    
-    document.getElementById('modal-install-btn').onclick = () => {
-        const btn = document.getElementById('modal-install-btn');
-        const card = document.querySelector(`.mod-card[data-mod*='"Name":"${currentModalMod.Name}"']`);
-        installMod(btn, currentModalMod, card);
-    };
-    document.getElementById('modal-uninstall-btn').onclick = () => {
-        const btn = document.getElementById('modal-uninstall-btn');
-        const card = document.querySelector(`.mod-card[data-mod*='"Name":"${currentModalMod.Name}"']`);
-        uninstallMod(btn, currentModalMod, card);
-    };
-    
-    function showModpackResult(results) {
-        const modal = document.getElementById('modpack-result-modal');
-        document.getElementById('modpack-result-list').innerHTML = Array.isArray(results) ? results.map(r => `<div>${escapeHtml(r)}</div>`).join('') : "完成";
-        modal.style.display = 'block';
-    }
-    document.getElementById('close-result-btn').onclick = () => document.getElementById('modpack-result-modal').style.display = 'none';
-    document.querySelector('.close-result').onclick = () => document.getElementById('modpack-result-modal').style.display = 'none';
-
-    // ==================== 导航与初始化 ====================
-    const navItems = document.querySelectorAll('.nav-item');
-    const tabs = { browse: document.getElementById('browse-tab'), modpacks: document.getElementById('modpacks-tab'), manage: document.getElementById('manage-tab'), settings: document.getElementById('settings-tab'), about: document.getElementById('about-tab') };
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            navItems.forEach(i => i.classList.remove('active')); item.classList.add('active');
-            Object.values(tabs).forEach(t => t.classList.remove('active'));
-            const target = item.dataset.tab;
-            tabs[target].classList.add('active');
-            if (target === 'manage') loadInstalled(currentManageSource);
-            if (target === 'modpacks') loadModpacks(currentModpackSource);
-            if (target === 'settings' || target === 'about') loadConfig();
-        });
-    });
-
-    function toggleSidebar() { 
-        document.getElementById('sidebar').classList.toggle('collapsed'); 
-        document.body.classList.toggle('sidebar-collapsed');
-    }
-
-    document.getElementById('grid-view-btn').onclick = () => { currentView = 'grid'; filterMods(); document.getElementById('grid-view-btn').classList.add('active'); document.getElementById('list-view-btn').classList.remove('active'); };
-    document.getElementById('list-view-btn').onclick = () => { currentView = 'list'; filterMods(); document.getElementById('list-view-btn').classList.add('active'); document.getElementById('grid-view-btn').classList.remove('active'); };
-    
-    document.getElementById('source-select').onchange = (e) => { currentBrowseSource = parseInt(e.target.value); localStorage.setItem('sel_browse', currentBrowseSource); clearSelection(); loadMods(currentBrowseSource); };
-    document.getElementById('modpack-source-select').onchange = (e) => { currentModpackSource = parseInt(e.target.value); localStorage.setItem('sel_pack', currentModpackSource); loadModpacks(currentModpackSource); };
-    document.getElementById('manage-source-select').onchange = (e) => { currentManageSource = parseInt(e.target.value); localStorage.setItem('sel_manage', currentManageSource); clearSelectionInstalled(); loadInstalled(currentManageSource); };
-    
-    document.getElementById('search').oninput = () => filterMods();
-    document.getElementById('category').onchange = () => filterMods();
-
-    // 任务轮询
-    setInterval(async () => {
-        const res = await fetch('/api/tasks');
-        const tasks = await res.json();
-        const c = document.getElementById('task-list');
-        const count = document.getElementById('task-count');
-        count.textContent = tasks.length;
-        const active = tasks.filter(t => t.status !== 'completed' && t.status !== 'failed');
-        if(active.length > 0) {
-            c.style.display = 'block';
-            c.innerHTML = active.map(t => `<div class="task-item ${t.status}"><div class="task-name">${escapeHtml(t.name)}</div><div class="task-progress-bar" style="width: ${t.progress}%"></div></div>`).join('');
-        } else { c.style.display = 'none'; }
-    }, 1000);
-
-    // 回到顶部
-    const backToTopBtn = document.getElementById('back-to-top');
-    const mainContent = document.querySelector('.main-content');
-    mainContent.addEventListener('scroll', function() {
-        if (this.scrollTop > 300) backToTopBtn.style.display = 'flex';
-        else backToTopBtn.style.display = 'none';
-    });
-    backToTopBtn.onclick = () => mainContent.scrollTo({top: 0, behavior: 'smooth'});
-
-    // ==================== 启动 (含自动检查更新) ====================
-    initLanguage().then(() => {
-        loadConfig();
-        loadSources().then(() => {
-            loadMods(currentBrowseSource);
-            loadModpacks(currentModpackSource);
-            loadInstalled(currentManageSource);
-            checkUpdate(); // 启动时静默检查更新
-        });
-        setupDelegation();
-    });
+(function(){
+  function loadScript(src){return new Promise(function(res,rej){var s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+  loadScript('/static/js/vue.global.prod.js').catch(function(){return loadScript('https://unpkg.com/vue@3/dist/vue.global.prod.js')}).then(function(){initVueApp()}).catch(function(){document.getElementById('app').innerHTML='<div class="vue-loading"><p>Vue.js 加载失败，请刷新重试。</p></div>'})
+})();
 </script>
+
+{% raw %}
+
+<div id="app" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+
+  <!-- 移动端菜单按钮 -->
+  <button class="mobile-menu-btn" @click="mobileMenuOpen = !mobileMenuOpen">☰</button>
+  <div class="mobile-overlay" :class="{ active: mobileMenuOpen }" @click="mobileMenuOpen = false"></div>
+
+  <div class="vue-loading" v-if="!appReady">{{ t('loading') }}</div>
+
+  <template v-else>
+
+  <!-- ==================== 侧边栏 ==================== -->
+  <aside class="sidebar" :class="{ collapsed: sidebarCollapsed, 'mobile-open': mobileMenuOpen }">
+    <div class="sidebar-header">
+      <span class="logo-icon">🚗</span>
+      <span class="logo-text" v-show="!sidebarCollapsed || mobileMenuOpen">{{ t('app_title') }}</span>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item" :class="{ active: activeTab === 'browse' }" @click="switchTab('browse')">
+        <svg viewBox="0 0 24 24"><path d="M4 4h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 10h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 16h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4z"/></svg>
+        <span class="menu-text">{{ t('browse_mods') }}</span>
+      </li>
+      <li class="nav-item" :class="{ active: activeTab === 'modpacks' }" @click="switchTab('modpacks')">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9v-2h4V5h2v4h4v2z"/></svg>
+        <span class="menu-text">{{ t('modpacks') }}</span>
+      </li>
+      <li class="nav-item" :class="{ active: activeTab === 'manage' }" @click="switchTab('manage')">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.6 3.6 0 0112 15.6z"/></svg>
+        <span class="menu-text">{{ t('installed_mods') }}</span>
+      </li>
+      <li class="nav-item" :class="{ active: activeTab === 'settings' }" @click="switchTab('settings')">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.6 3.6 0 0112 15.6z"/></svg>
+        <span class="menu-text">{{ t('settings') }}</span>
+      </li>
+      <li class="nav-item" :class="{ active: activeTab === 'about' }" @click="switchTab('about')">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        <span class="menu-text">{{ t('about') }}</span>
+      </li>
+    </ul>
+    <div class="sidebar-actions">
+      <button class="sidebar-btn primary" @click="launchSteam">🎮 <span class="btn-text">{{ t('launch_game') }}</span></button>
+      <button class="sidebar-btn secondary" @click="launchExe">🚀 <span class="btn-text">{{ t('launch_exe') }}</span></button>
+      <button class="sidebar-btn secondary" @click="installPatcher">🔧 <span class="btn-text">{{ t('install_patcher') }}</span></button>
+      <button class="sidebar-btn secondary" @click="cheat1000km">📏 <span class="btn-text">{{ t('cheat_1000km') }}</span></button>
+    </div>
+    <div class="sidebar-footer">
+      <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed">{{ sidebarCollapsed ? '▶' : '◀' }}</button>
+    </div>
+  </aside>
+
+  <!-- ==================== 主内容 ==================== -->
+  <main class="main-content" ref="mainContent" @scroll="handleScroll">
+    <div class="container">
+
+      <!-- ===== 浏览模组 ===== -->
+      <div class="tab-content" :class="{ active: activeTab === 'browse' }">
+        <div class="top-bar">
+          <div class="source-selector">
+            <label>{{ t('data_source') }}</label>
+            <select v-model.number="sourceIndex" @change="loadMods()">
+              <option v-for="(s, i) in sources" :key="i" :value="i">{{ s.name }}</option>
+            </select>
+            <label><input type="checkbox" v-model="strictMode" @change="loadMods()"> {{ t('strict_mode') }}</label>
+          </div>
+          <div class="view-toggle">
+            <button class="view-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'">{{ t('grid_view') }}</button>
+            <button class="view-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">{{ t('list_view') }}</button>
+          </div>
+        </div>
+        <div class="filters">
+          <input class="search-input" v-model="searchQuery" :placeholder="t('search_placeholder')">
+          <select class="category-select" v-model="selectedCategory">
+            <option value="">{{ t('all_categories') }}</option>
+            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+          </select>
+          <button class="action-btn secondary" @click="selectAll('browse')">{{ t('select_all') }}</button>
+          <button class="action-btn secondary" @click="invertSelection('browse')">{{ t('invert_selection') }}</button>
+          <button class="action-btn secondary" @click="clearSelection('browse')">{{ t('clear_selection') }}</button>
+        </div>
+        <div v-if="loading" class="loading">{{ t('loading') }}</div>
+        <div v-else-if="filteredMods.length === 0" class="info">{{ t('no_mods_found') }}</div>
+        <div v-else :class="viewMode === 'grid' ? 'mod-grid' : 'mod-list'">
+          <div v-for="mod in filteredMods" :key="mod.FileName" class="mod-card-wrapper">
+            <input type="checkbox" class="multi-check" :value="mod.FileName" v-model="selectedBrowse">
+            <div class="mod-card" :class="{ 'has-conflict': hasConflict(mod.Name) }" @click="openDetail(mod)">
+              <div class="mod-image">
+                <img :src="mod.PictureLink || ''" :alt="mod.Name" loading="lazy" @error="imgFallback">
+              </div>
+              <div class="mod-info">
+                <h3>{{ mod.Name }}</h3>
+                <div class="author">{{ t('author') }}{{ mod.Author }}</div>
+                <div class="version">{{ t('version') }}{{ mod.Version }}</div>
+                <div>
+                  <span v-if="mod.is_installed" class="mod-tag installed-tag">{{ t('installed') }}</span>
+                  <span v-if="mod.Dependency" class="mod-tag dep">{{ t('dep_tag') }}</span>
+                  <span v-if="hasConflict(mod.Name)" class="mod-tag conflict">{{ t('conflict_tag') }}</span>
+                </div>
+                <div class="desc">{{ mod.Description }}</div>
+                <div class="mod-actions" @click.stop>
+                  <button v-if="!mod.is_installed" class="btn-install" @click="doInstall(mod)" :disabled="mod._busy">{{ mod._busy ? '...' : t('install') }}</button>
+                  <button v-else class="btn-uninstall" @click="doUninstall(mod)">{{ t('uninstall') }}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 模组包 ===== -->
+      <div class="tab-content" :class="{ active: activeTab === 'modpacks' }">
+        <div class="top-bar">
+          <div class="source-selector">
+            <label>{{ t('data_source') }}</label>
+            <select v-model.number="modpackSourceIndex" @change="loadModpacks()">
+              <option v-for="(s, i) in sources" :key="i" :value="i">{{ s.name }}</option>
+            </select>
+          </div>
+          <div class="view-toggle">
+            <button class="view-btn" :class="{ active: modpackViewMode === 'grid' }" @click="modpackViewMode = 'grid'">{{ t('grid_view') }}</button>
+            <button class="view-btn" :class="{ active: modpackViewMode === 'list' }" @click="modpackViewMode = 'list'">{{ t('list_view') }}</button>
+          </div>
+        </div>
+        <div class="filters">
+          <button class="action-btn primary" @click="exportModpack">{{ t('export') }}</button>
+          <label class="action-btn secondary" style="cursor:pointer;">{{ t('import') }}<input type="file" accept=".txt" @change="importModpack" style="display:none"></label>
+        </div>
+        <div v-if="modpacksLoading" class="loading">{{ t('loading') }}</div>
+        <div v-else-if="modpacks.length === 0" class="info">{{ t('no_mods_found') }}</div>
+        <div v-else :class="modpackViewMode === 'grid' ? 'mod-grid' : 'mod-list'">
+          <div v-for="pack in modpacks" :key="pack.Name || pack.Link" class="mod-card" @click="openDetail(pack)">
+            <div class="mod-image">
+              <img :src="pack.PictureLink || ''" :alt="pack.Name" loading="lazy" @error="imgFallback">
+            </div>
+            <div class="mod-info">
+              <h3>{{ pack.Name }}</h3>
+              <div class="author" v-if="pack.Author">{{ t('author') }}{{ pack.Author }}</div>
+              <div class="desc">{{ pack.Description }}</div>
+              <div class="mod-actions" @click.stop>
+                <button class="btn-install" @click="doInstallModpack(pack)">{{ t('install') }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 已安装 ===== -->
+      <div class="tab-content" :class="{ active: activeTab === 'manage' }">
+        <div class="top-bar">
+          <div class="source-selector">
+            <label>{{ t('data_source') }}</label>
+            <select v-model.number="manageSourceIndex" @change="loadMods()">
+              <option v-for="(s, i) in sources" :key="i" :value="i">{{ s.name }}</option>
+            </select>
+          </div>
+          <div class="view-toggle">
+            <button class="view-btn" :class="{ active: manageViewMode === 'grid' }" @click="manageViewMode = 'grid'">{{ t('grid_view') }}</button>
+            <button class="view-btn" :class="{ active: manageViewMode === 'list' }" @click="manageViewMode = 'list'">{{ t('list_view') }}</button>
+          </div>
+        </div>
+        <!-- 冲突警告 -->
+        <div v-if="installedConflicts.length > 0" style="margin-bottom:15px;">
+          <div v-for="c in installedConflicts" :key="c.reason" style="background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);border-radius:var(--radius-md);padding:10px 15px;margin-bottom:8px;">
+            <strong style="color:var(--danger);">{{ t('conflict_detect') }}</strong>
+            <span style="color:#ddd;">{{ c.mods.join(' ↔ ') }} — {{ c.reason }}</span>
+          </div>
+        </div>
+        <div class="filters">
+          <button class="action-btn secondary" @click="selectAll('manage')">{{ t('select_all') }}</button>
+          <button class="action-btn secondary" @click="invertSelection('manage')">{{ t('invert_selection') }}</button>
+          <button class="action-btn secondary" @click="clearSelection('manage')">{{ t('clear_selection') }}</button>
+        </div>
+        <div v-if="loading" class="loading">{{ t('loading') }}</div>
+        <div v-else-if="installedMods.length === 0" class="info">{{ t('no_installed_mods') }}</div>
+        <div v-else :class="manageViewMode === 'grid' ? 'mod-grid' : 'mod-list'">
+          <div v-for="mod in installedMods" :key="mod.Name || mod.FileName" class="mod-card-wrapper">
+            <input type="checkbox" class="multi-check" :value="mod.Name || mod.FileName" v-model="selectedManage">
+            <div class="mod-card" :class="{ 'has-conflict': hasConflict(mod.Name) }" @click="openDetail(mod)">
+              <div class="mod-image">
+                <img :src="mod.PictureLink || ''" :alt="mod.Name" loading="lazy" @error="imgFallback">
+              </div>
+              <div class="mod-info">
+                <h3>{{ mod.Name }}</h3>
+                <div class="version">{{ t('version') }}{{ mod.installed_version || mod.Version }}</div>
+                <div>
+                  <span v-if="mod.Dependency" class="mod-tag dep">{{ t('dep_tag') }}</span>
+                  <span v-if="hasConflict(mod.Name)" class="mod-tag conflict">{{ t('conflict_tag') }}</span>
+                </div>
+                <div class="desc">{{ mod.Description }}</div>
+                <div class="mod-actions" @click.stop>
+                  <button class="btn-uninstall" @click="doUninstallByName(mod.Name || mod.FileName)">{{ t('uninstall') }}</button>
+                  <button class="btn-update" :disabled="mod.installed_version === mod.Version" @click="doUpdateByName(mod.Name)">{{ mod.installed_version === mod.Version ? t('latest') : t('update') }}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 设置 ===== -->
+      <div class="tab-content" :class="{ active: activeTab === 'settings' }">
+        <div class="settings-section">
+          <h3>{{ t('update_settings') }}</h3>
+          <div class="setting-row"><label>{{ t('manual_check') }}</label><button class="action-btn primary" @click="checkUpdate(true)" :disabled="checkingUpdate">{{ checkingUpdate ? t('checking_update') : t('manual_check') }}</button></div>
+          <div class="setting-row"><label>{{ t('enable_proxy') }}</label><input type="checkbox" v-model="config.use_proxy"><span style="color:#888;font-size:0.8rem;">{{ t('proxy_recommend') }}</span></div>
+          <div class="setting-row"><label>{{ t('backup_filename') }}</label><input type="text" v-model="config.backup_name" :placeholder="t('backup_placeholder')"></div>
+        </div>
+        <div class="settings-section">
+          <h3>{{ t('ui_theme') }}</h3>
+          <div class="setting-row"><label>{{ t('bg_color') }}</label><input type="color" v-model="themeBgColor"><button class="action-btn secondary" @click="resetTheme">{{ t('reset_default') }}</button><button class="action-btn primary" @click="applyTheme">{{ t('apply_theme') }}</button></div>
+        </div>
+        <div class="settings-section">
+          <h3>{{ t('language_settings') }}</h3>
+          <div class="setting-row"><label>{{ t('ui_language') }}</label><select v-model="currentLang" @change="changeLanguage"><option value="auto">{{ t('auto_system') }}</option><option value="zh">中文</option><option value="en">English</option><option value="fr">Français</option><option value="ar">العربية</option><option value="es">Español</option><option value="ru">Русский</option></select></div>
+        </div>
+        <div class="settings-section">
+          <h3>{{ t('launch_settings') }}</h3>
+          <div class="setting-row"><label>{{ t('game_exe_path') }}</label><input type="text" v-model="config.exe_path" :placeholder="t('exe_path_placeholder')"><button class="action-btn secondary" @click="browseExe">{{ t('browse') }}</button></div>
+        </div>
+        <button class="action-btn primary" @click="saveConfig" style="margin-top:10px;">{{ t('save_settings') }}</button>
+      </div>
+
+      <!-- ===== 关于 ===== -->
+      <div class="tab-content" :class="{ active: activeTab === 'about' }">
+        <div class="settings-section">
+          <h3>{{ t('about_title') }}</h3>
+          <p style="line-height:1.8;color:#ccc;">
+            <strong>TLD 网页模组安装器</strong><br>The Long Drive Mod Installer<br>版本：{{ version }}<br>开发者：yiqiu<br>QQ群：661726941<br>Email：2308534727@qq.com<br>许可证：AGPL-3.0
+          </p>
+        </div>
+        <div class="settings-section">
+          <h3>{{ t('license') }}</h3>
+          <textarea style="width:100%;height:200px;background:var(--bg-color);color:#ccc;border:1px solid var(--input-border);border-radius:var(--radius-md);padding:10px;resize:vertical;font-size:0.85rem;" readonly>{{ licenseText }}</textarea>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==================== 模组详情模态框 ==================== -->
+  <div class="modal" v-if="showDetailModal" @click.self="showDetailModal = false">
+    <div class="modal-content">
+      <span class="close" @click="showDetailModal = false">&times;</span>
+      <div class="modal-image" v-if="detailMod">
+        <img :src="detailMod.PictureLink || ''" :alt="detailMod.Name" @error="imgFallback">
+      </div>
+      <div v-if="detailMod">
+        <h2 style="color:var(--accent);">{{ detailMod.Name }}</h2>
+        <p style="color:#888;margin:5px 0;">{{ t('author') }}{{ detailMod.Author }}</p>
+        <p style="color:#888;margin:5px 0;">{{ t('version') }}{{ detailMod.Version }}</p>
+        <p style="color:#888;margin:5px 0;" v-if="detailMod.Category">{{ t('category_label') }}{{ detailMod.Category }}</p>
+
+        <!-- 依赖信息 -->
+        <div v-if="detailDepInfo.length > 0" class="dep-list">
+          <p style="color:var(--info);font-weight:bold;margin:8px 0 4px;">{{ t('dep_title') }}</p>
+          <div v-for="dep in detailDepInfo" :key="dep.name" class="dep-item">
+            <span>{{ dep.name }} <span style="color:#888;">v{{ dep.version }}</span></span>
+            <span class="dep-status" :class="{ needed: !dep.is_installed }">{{ dep.is_installed ? t('dep_installed') : t('dep_needed') }}</span>
+          </div>
+        </div>
+
+        <!-- 冲突信息 -->
+        <div v-if="detailConflicts.length > 0" class="conflict-list">
+          <p style="color:var(--danger);font-weight:bold;margin:8px 0 4px;">{{ t('conflict_title') }}</p>
+          <div v-for="c in detailConflicts" :key="c.reason" class="conflict-item">
+            <span>{{ c.mods.join(' ↔ ') }} — {{ c.reason }}</span>
+          </div>
+        </div>
+
+        <p style="color:#888;margin:5px 0;" v-if="detailMod.Dependency && detailDepInfo.length === 0">{{ t('dep_fallback') }}{{ detailMod.Dependency }}</p>
+        <div class="modal-description">{{ detailMod.Description }}</div>
+        <div class="modal-description" v-if="detailMod.Changelog" style="margin-top:8px;"><strong>{{ t('changelog_label') }}</strong><br>{{ detailMod.Changelog }}</div>
+        <div class="modal-actions">
+          <button v-if="!detailMod.is_installed" class="btn-install" @click="doInstall(detailMod); showDetailModal = false">{{ t('install') }}</button>
+          <button v-else class="btn-uninstall" @click="doUninstall(detailMod); showDetailModal = false">{{ t('uninstall') }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 操作结果模态框 ==================== -->
+  <div class="modal" v-if="showResultModal" @click.self="showResultModal = false">
+    <div class="modal-content">
+      <span class="close" @click="showResultModal = false">&times;</span>
+      <h2 style="color:var(--accent);">{{ t('operation_result') }}</h2>
+      <div class="modal-description" style="max-height:400px;">
+        <div v-for="(r, i) in resultLines" :key="i" style="padding:3px 0;white-space:pre-wrap;">{{ r }}</div>
+      </div>
+      <div class="modal-actions"><button class="action-btn secondary" @click="showResultModal = false">{{ t('close') }}</button></div>
+    </div>
+  </div>
+
+  <!-- ==================== 批量操作栏 ==================== -->
+  <div class="batch-bar" :class="{ active: batchBarActive }">
+    <span>{{ t('selected_items', {count: batchCount}) }}</span>
+    <button v-if="activeTab === 'browse'" class="action-btn primary" :disabled="batchBusy" @click="batchInstall">{{ batchBusy ? t('batch_installing') : t('batch_install') }}</button>
+    <button class="action-btn danger" :disabled="batchBusy" @click="batchUninstall">{{ batchBusy ? t('batch_uninstalling') : t('batch_uninstall') }}</button>
+    <button v-if="activeTab === 'manage'" class="action-btn warning" :disabled="batchBusy" @click="batchUpdate">{{ batchBusy ? t('batch_updating') : t('batch_update') }}</button>
+    <button class="action-btn secondary" @click="clearCurrentSelection">{{ t('cancel') }}</button>
+  </div>
+
+  <!-- ==================== 下载管理器 ==================== -->
+  <div class="download-manager">
+    <div class="download-header" @click="dlExpanded = !dlExpanded">
+      <span>{{ t('download_tasks') }} ({{ activeTaskCount }})</span>
+      <span>{{ dlExpanded ? '▼' : '▲' }}</span>
+    </div>
+    <div class="task-list" v-show="dlExpanded">
+      <div v-if="downloadTasks.length === 0" style="color:#888;text-align:center;padding:10px;">{{ t('no_tasks') }}</div>
+      <div v-for="task in downloadTasks" :key="task.id" class="task-item">
+        <div style="display:flex;justify-content:space-between;">
+          <span>{{ task.name }}</span>
+          <span :style="{color: task.status==='completed'?'#4caf50':task.status==='failed'?'#f44336':'#ff9800'}">{{ task.status === 'downloading' ? (task.progress||0).toFixed(0) + '%' : task.status }}</span>
+        </div>
+        <div class="task-progress-bar" :style="{width: (task.progress||0) + '%'}"></div>
+      </div>
+    </div>
+  </div>
+
+  <button id="back-to-top" v-show="showBackToTop" @click="scrollToTop">↑</button>
+
+  <div class="toast-container">
+    <div v-for="toast in toasts" :key="toast.id" class="toast" :class="toast.type">{{ toast.message }}</div>
+  </div>
+
+  </template>
+</div>
+
+<script>
+function initVueApp() {
+  var FD = JSON.parse(document.getElementById('flask-data').textContent);
+
+  Vue.createApp({
+    data: function() {
+      return {
+        appReady: true,
+        version: FD.version,
+        translations: FD.translations || {},
+        activeTab: 'browse',
+        sidebarCollapsed: false,
+        mobileMenuOpen: false,
+
+        sources: [],
+        sourceIndex: 0,
+        modpackSourceIndex: 0,
+        manageSourceIndex: 0,
+        strictMode: false,
+
+        mods: [],
+        modpacks: [],
+        loading: false,
+        modpacksLoading: false,
+
+        searchQuery: '',
+        debouncedSearch: '',
+        selectedCategory: '',
+        viewMode: 'grid',
+        modpackViewMode: 'grid',
+        manageViewMode: 'list',
+
+        selectedBrowse: [],
+        selectedManage: [],
+        batchBusy: false,
+
+        showDetailModal: false,
+        detailMod: null,
+        detailDepInfo: [],
+        detailConflicts: [],
+        detailFetchAbort: null,
+
+        showResultModal: false,
+        resultLines: [],
+
+        installedConflicts: [],
+        conflictModNames: {},
+
+        downloadTasks: [],
+        dlExpanded: false,
+        taskTimer: null,
+
+        config: { exe_path: '', use_proxy: false, backup_name: 'ModpackManager_old.exe' },
+        themeBgColor: '#12121a',
+        currentLang: 'auto',
+        checkingUpdate: false,
+        licenseText: '',
+        toasts: [],
+        toastId: 0,
+        showBackToTop: false
+      };
+    },
+
+    computed: {
+      categories: function() { var s={}; this.mods.forEach(function(m){if(m.Category)s[m.Category]=1}); return Object.keys(s).sort(); },
+      filteredMods: function() {
+        var self=this, r=this.mods;
+        if(this.debouncedSearch){var q=this.debouncedSearch.toLowerCase();r=r.filter(function(m){return(m.Name&&m.Name.toLowerCase().indexOf(q)!==-1)||(m.Author&&m.Author.toLowerCase().indexOf(q)!==-1)||(m.Description&&m.Description.toLowerCase().indexOf(q)!==-1)})}
+        if(this.selectedCategory){r=r.filter(function(m){return m.Category===self.selectedCategory})}
+        return r;
+      },
+      installedMods: function() { return this.mods.filter(function(m){return m.is_installed}); },
+      batchBarActive: function() { if(this.activeTab==='browse')return this.selectedBrowse.length>0; if(this.activeTab==='manage')return this.selectedManage.length>0; return false; },
+      batchCount: function() { if(this.activeTab==='browse')return this.selectedBrowse.length; if(this.activeTab==='manage')return this.selectedManage.length; return 0; },
+      activeTaskCount: function() { return this.downloadTasks.filter(function(t){return t.status==='downloading'||t.status==='pending'}).length; }
+    },
+
+    watch: {
+      searchQuery: function(val) {
+        var self = this;
+        clearTimeout(this._searchTimer);
+        this._searchTimer = setTimeout(function() { self.debouncedSearch = val; }, 300);
+      }
+    },
+
+    methods: {
+      t: function(key, args) {
+        var text = this.translations[key] || key;
+        if(args){Object.keys(args).forEach(function(k){text=text.replace('{'+k+'}',String(args[k]))})}
+        return text;
+      },
+
+      initLanguage: function() {
+        var saved=localStorage.getItem('tld_lang')||'auto'; this.currentLang=saved;
+        var lang=saved;
+        if(lang==='auto'){var nl=navigator.language||'';lang=nl.startsWith('zh')?'zh':nl.startsWith('fr')?'fr':nl.startsWith('ar')?'ar':nl.startsWith('es')?'es':nl.startsWith('ru')?'ru':'en'}
+        if(lang!=='zh'||Object.keys(this.translations).length===0){var self=this;fetch('/api/translations?lang='+lang).then(function(r){return r.json()}).then(function(d){self.translations=d}).catch(function(){})}
+      },
+      changeLanguage: function() { localStorage.setItem('tld_lang',this.currentLang); this.initLanguage(); },
+
+      loadSources: function() { var self=this; fetch('/api/sources').then(function(r){return r.json()}).then(function(d){self.sources=d}).catch(function(){}) },
+
+      loadMods: function() {
+        var self=this; this.loading=true;
+        var src=this.activeTab==='manage'?this.manageSourceIndex:this.sourceIndex;
+        fetch('/api/mods?source='+src+'&strict='+this.strictMode).then(function(r){return r.json()}).then(function(d){
+          self.mods=(d.mods||[]).map(function(m){return Object.assign({},m,{_busy:false})});
+          if(d.active_source!==undefined){if(self.activeTab==='manage')self.manageSourceIndex=d.active_source;else self.sourceIndex=d.active_source}
+          self.loadInstalledConflicts();
+        }).catch(function(){self.showToast(self.t('load_mods_failed'),'error')}).finally(function(){self.loading=false});
+      },
+
+      loadModpacks: function() {
+        var self=this; this.modpacksLoading=true;
+        fetch('/api/modpacks?source='+this.modpackSourceIndex).then(function(r){return r.json()}).then(function(d){self.modpacks=d.modpacks||[]}).catch(function(){}).finally(function(){self.modpacksLoading=false});
+      },
+
+      switchTab: function(tab) {
+        this.activeTab=tab; this.mobileMenuOpen=false;
+        if(tab==='browse'||tab==='manage'){this.loadMods()}
+        else if(tab==='modpacks'){this.loadModpacks()}
+      },
+
+      imgFallback: function(e) { e.target.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="70">📦</text></svg>'); },
+
+      // ===== 冲突检测 =====
+      loadInstalledConflicts: function() {
+        var self=this;
+        fetch('/api/check-conflicts').then(function(r){return r.json()}).then(function(d){
+          self.installedConflicts=d.conflicts||[];
+          self.conflictModNames={};
+          (d.conflicts||[]).forEach(function(c){c.mods.forEach(function(m){self.conflictModNames[m.toLowerCase()]=true})});
+        }).catch(function(){});
+      },
+      hasConflict: function(name) { return name && this.conflictModNames[name.toLowerCase()]; },
+
+      // ===== 详情（#1 用正确数据源，#2 AbortController） =====
+      openDetail: function(mod) {
+        var self = this;
+        if (this.detailFetchAbort) {
+          try { this.detailFetchAbort.abort(); } catch(e) {}
+        }
+        this.detailFetchAbort = new AbortController();
+        var signal = this.detailFetchAbort.signal;
+
+        this.detailMod = mod;
+        this.detailDepInfo = [];
+        this.detailConflicts = [];
+        this.showDetailModal = true;
+
+        var src = this.activeTab === 'manage' ? this.manageSourceIndex : this.sourceIndex;
+
+        if (mod.FileName) {
+          fetch('/api/resolve-deps', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({filename: mod.FileName, source: src}),
+            signal: signal
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(d) { self.detailDepInfo = d.dependencies || []; })
+          .catch(function(e) { if (e.name !== 'AbortError') {} });
+        }
+        if (mod.Name) {
+          fetch('/api/check-new-conflicts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: mod.Name}),
+            signal: signal
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(d) { self.detailConflicts = d.conflicts || []; })
+          .catch(function(e) { if (e.name !== 'AbortError') {} });
+        }
+      },
+
+      // ===== 安装 =====
+      doInstall: function(mod) {
+        var self=this; mod._busy=true;
+        fetch('/api/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:mod.FileName,source:this.sourceIndex,auto_deps:true})})
+        .then(function(r){return r.json()}).then(function(d){
+          if(d.success){
+            var msg=self.t('toast_install_success')+': '+(d.name||mod.Name);
+            if(d.dep_results&&d.dep_results.length>0) msg+='\n'+d.dep_results.join('\n');
+            self.showToast(msg,'success');
+            mod.is_installed=true; mod.installed_version=d.new_version;
+            self.loadInstalledConflicts();
+          } else { self.showToast(d.error||self.t('install_request_failed'),'error') }
+        }).catch(function(){self.showToast(self.t('install_request_failed'),'error')}).finally(function(){mod._busy=false});
+      },
+
+      doUninstall: function(mod) {
+        var name=mod.Name||mod.FileName;
+        if(!confirm(this.t('confirm_uninstall',{name:name})))return;
+        var self=this;
+        fetch('/api/uninstall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})})
+        .then(function(r){return r.json()}).then(function(d){
+          if(d.success){self.showToast(self.t('uninstall_success')+': '+name,'success');mod.is_installed=false;mod.installed_version='';self.loadInstalledConflicts()}
+          else{self.showToast(d.error||self.t('uninstall_failed'),'error')}
+        }).catch(function(){self.showToast(self.t('uninstall_request_failed'),'error')});
+      },
+
+      doUninstallByName: function(name) {
+        if(!confirm(this.t('confirm_uninstall',{name:name})))return;
+        var self=this;
+        fetch('/api/uninstall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})})
+        .then(function(r){return r.json()}).then(function(d){
+          if(d.success){self.showToast(self.t('uninstall_success')+': '+name,'success');self.loadMods()}
+          else{self.showToast(d.error||self.t('uninstall_failed'),'error')}
+        }).catch(function(){self.showToast(self.t('uninstall_request_failed'),'error')});
+      },
+
+      doUpdateByName: function(name) {
+        var self=this;
+        fetch('/api/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,source:self.manageSourceIndex})})
+        .then(function(r){return r.json()}).then(function(d){
+          if(d.success){self.showToast(self.t('update_success')+': '+name,'success');self.loadMods()}
+          else{self.showToast(d.error||self.t('update_failed'),'error')}
+        }).catch(function(){self.showToast(self.t('update_request_failed'),'error')});
+      },
+
+      doInstallModpack: function(pack) {
+        var self=this;
+        if(!confirm(this.t('confirm_install_modpack',{name:pack.Name})))return;
+        fetch('/api/install-modpack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({Link:pack.Link,source:this.modpackSourceIndex})})
+        .then(function(r){return r.json()}).then(function(d){
+          if(d.results){self.resultLines=d.results;self.showResultModal=true}
+          else if(d.error){self.showToast(d.error,'error')}
+        }).catch(function(){self.showToast(self.t('install_modpack_failed'),'error')});
+      },
+
+      // ===== 多选 =====
+      selectAll: function(tab) {
+        if(tab==='browse')this.selectedBrowse=this.filteredMods.map(function(m){return m.FileName});
+        else if(tab==='manage')this.selectedManage=this.installedMods.map(function(m){return m.Name||m.FileName});
+      },
+      invertSelection: function(tab) {
+        if(tab==='browse'){var all=this.filteredMods.map(function(m){return m.FileName});var sel=this.selectedBrowse;this.selectedBrowse=all.filter(function(f){return sel.indexOf(f)===-1})}
+        else if(tab==='manage'){var all2=this.installedMods.map(function(m){return m.Name||m.FileName});var sel2=this.selectedManage;this.selectedManage=all2.filter(function(n){return sel2.indexOf(n)===-1})}
+      },
+      clearSelection: function(tab) { if(tab==='browse')this.selectedBrowse=[]; else if(tab==='manage')this.selectedManage=[]; },
+      clearCurrentSelection: function() { this.clearSelection(this.activeTab); },
+
+      // ===== 批量（#3 过滤无效Name，#8 loading状态） =====
+      batchInstall: function() {
+        var self=this;
+        if(this.batchBusy) return;
+        if(!confirm(this.t('confirm_batch_install',{count:this.selectedBrowse.length})))return;
+        this.batchBusy=true;
+        fetch('/api/batch-install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filenames:this.selectedBrowse,source:this.sourceIndex})})
+        .then(function(r){return r.json()}).then(function(d){if(d.results){self.resultLines=d.results;self.showResultModal=true}self.selectedBrowse=[];self.loadMods()}).catch(function(){self.showToast(self.t('batch_install_failed'),'error')}).finally(function(){self.batchBusy=false});
+      },
+      batchUninstall: function() {
+        var self=this;
+        if(this.batchBusy) return;
+        var names=this.activeTab==='browse'?this.selectedBrowse.reduce(function(arr,fn){
+          var mod=self.mods.find(function(m){return m.FileName===fn});
+          if(mod&&mod.Name) arr.push(mod.Name);
+          return arr;
+        },[]):this.selectedManage.filter(Boolean);
+        if(names.length===0) return;
+        if(!confirm(this.t('confirm_batch_uninstall',{count:names.length})))return;
+        this.batchBusy=true;
+        fetch('/api/batch-uninstall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({names:names})})
+        .then(function(r){return r.json()}).then(function(d){if(d.results){self.resultLines=d.results;self.showResultModal=true}self.clearCurrentSelection();self.loadMods()}).catch(function(){self.showToast(self.t('batch_uninstall_failed'),'error')}).finally(function(){self.batchBusy=false});
+      },
+      batchUpdate: function() {
+        var self=this;
+        if(this.batchBusy) return;
+        if(!confirm(this.t('confirm_batch_update',{count:this.selectedManage.length})))return;
+        this.batchBusy=true;
+        fetch('/api/batch-update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({names:this.selectedManage,source:this.manageSourceIndex})})
+        .then(function(r){return r.json()}).then(function(d){if(d.results){self.resultLines=d.results;self.showResultModal=true}self.selectedManage=[];self.loadMods()}).catch(function(){self.showToast(self.t('batch_update_failed'),'error')}).finally(function(){self.batchBusy=false});
+      },
+
+      // ===== 模组包 =====
+      exportModpack: function() {
+        var self=this;
+        fetch('/api/export-modpack').then(function(r){
+          if(r.ok)return r.blob().then(function(b){var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='my_modpack.txt';a.click();URL.revokeObjectURL(u);self.showToast(self.t('export_success'),'success')});
+          else return r.json().then(function(d){self.showToast(d.error||self.t('export_failed'),'error')});
+        }).catch(function(){self.showToast(self.t('export_failed'),'error')});
+      },
+      importModpack: function(event) {
+        var self=this; var file=event.target.files[0]; if(!file)return;
+        var fd=new FormData(); fd.append('file',file); fd.append('source',this.modpackSourceIndex);
+        fetch('/api/import-modpack',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){if(d.results){self.resultLines=d.results;self.showResultModal=true}else if(d.error){self.showToast(d.error,'error')}}).catch(function(){self.showToast(self.t('import_failed'),'error')});
+        event.target.value='';
+      },
+
+      // ===== 侧边栏 =====
+      launchSteam: function() { window.open('steam://rungameid/1017180'); this.showToast(this.t('toast_launch_success'),'success'); },
+      launchExe: function() {
+        var self=this; if(!this.config.exe_path){this.showToast(this.t('error_no_exe_path'),'error');return}
+        fetch('/api/launch-exe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:this.config.exe_path})})
+        .then(function(r){return r.json()}).then(function(d){if(d.success)self.showToast(self.t('toast_launch_success'),'success');else self.showToast(d.error||self.t('launch_failed'),'error')}).catch(function(){self.showToast(self.t('launch_failed'),'error')});
+      },
+      installPatcher: function() {
+        var self=this;
+        fetch('/api/install-patcher',{method:'POST'}).then(function(r){return r.json()}).then(function(d){if(d.success)self.showToast(self.t('toast_patcher_launched'),'success');else self.showToast(d.error||self.t('launch_failed'),'error')}).catch(function(){self.showToast(self.t('launch_failed'),'error')});
+      },
+      cheat1000km: function() { window.open('https://github.com/Gsjsjzhznsz/htmlTheLongDrivemodsChinesepatch/raw/main/1000km.reg','_blank'); },
+
+      // ===== 设置 =====
+      loadConfig: function() {
+        var self=this;
+        fetch('/api/config').then(function(r){return r.json()}).then(function(d){if(d)Object.keys(d).forEach(function(k){if(d[k]!==null&&d[k]!==undefined)self.config[k]=d[k]})}).catch(function(){});
+        var bg=localStorage.getItem('tld_bg_color'); if(bg){this.themeBgColor=bg;document.documentElement.style.setProperty('--bg-color',bg)}
+      },
+      saveConfig: function() {
+        var self=this;
+        fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(this.config)}).then(function(){self.showToast(self.t('toast_settings_saved'),'success')}).catch(function(){self.showToast(self.t('save_failed'),'error')});
+      },
+      browseExe: function() {
+        var self=this;
+        fetch('/api/browse-exe',{method:'POST'}).then(function(r){return r.json()}).then(function(d){if(d.success){self.config.exe_path=d.path;self.showToast(self.t('toast_select_path'),'success')}else self.showToast(d.error||self.t('no_file_selected'),'warning')}).catch(function(){self.showToast(self.t('browse_failed'),'error')});
+      },
+      applyTheme: function() { document.documentElement.style.setProperty('--bg-color',this.themeBgColor); localStorage.setItem('tld_bg_color',this.themeBgColor); this.showToast(this.t('toast_theme_applied'),'success'); },
+      resetTheme: function() { this.themeBgColor='#12121a'; document.documentElement.style.setProperty('--bg-color','#12121a'); localStorage.removeItem('tld_bg_color'); },
+
+      checkUpdate: function(isManual) {
+        var self=this; this.checkingUpdate=true;
+        fetch('/api/check-update').then(function(r){return r.json()}).then(function(d){if(d.update_available){if(confirm(self.t('update_found',{ver:d.latest})))self.performUpdate(d.download_url)}else if(isManual)alert(self.t('update_latest'))}).catch(function(){if(isManual)self.showToast(self.t('check_update_failed'),'error')}).finally(function(){self.checkingUpdate=false});
+      },
+      performUpdate: function(url) {
+        var self=this;
+        fetch('/api/do-update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url,backup_name:this.config.backup_name||'ModpackManager_old.exe'})})
+        .then(function(r){return r.json()}).then(function(d){if(d.success)alert(self.t('update_close_hint'));else self.showToast(d.error||self.t('update_failed'),'error')}).catch(function(){self.showToast(self.t('update_failed'),'error')});
+      },
+
+      // ===== 下载任务 =====
+      pollTasks: function() { var self=this; fetch('/api/tasks').then(function(r){return r.json()}).then(function(d){self.downloadTasks=d}).catch(function(){}) },
+      startPolling: function() { var self=this; this.taskTimer=setInterval(function(){self.pollTasks()},2000) },
+      stopPolling: function() { if(this.taskTimer){clearInterval(this.taskTimer);this.taskTimer=null} },
+
+      loadLicense: function() { var self=this; fetch('/api/license').then(function(r){return r.text()}).then(function(t){self.licenseText=t}).catch(function(){}) },
+
+      // #10 Toast 去重
+      showToast: function(message, type) {
+        if (this.toasts.some(function(t) { return t.message === message && t.type === (type || 'success'); })) return;
+        var self=this; var id=++this.toastId;
+        this.toasts.push({id:id,message:message,type:type||'success'});
+        setTimeout(function(){self.toasts=self.toasts.filter(function(t){return t.id!==id})},3500);
+      },
+
+      handleScroll: function() { this.showBackToTop=this.$refs.mainContent&&this.$refs.mainContent.scrollTop>300 },
+      scrollToTop: function() { if(this.$refs.mainContent)this.$refs.mainContent.scrollTo({top:0,behavior:'smooth'}) }
+    },
+
+    mounted: function() {
+      this.initLanguage(); this.loadSources(); this.loadMods(); this.loadConfig(); this.loadLicense(); this.startPolling(); this.checkUpdate(false);
+    },
+    beforeUnmount: function() { this.stopPolling(); }
+  }).mount('#app');
+}
+</script>
+
+{% endraw %}
 </body>
 </html>
