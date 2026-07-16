@@ -1,0 +1,84 @@
+<Page x:Class="TLDWorkshop.App.Views.SettingsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:ctrl="clr-namespace:TLDWorkshop.App.Controls"
+      Title="{DynamicResource Nav.Settings}">
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="Bool2Vis" />
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  PanningMode="VerticalOnly" CanContentScroll="False" ctrl:ScrollViewerHelper.EnableWheelScroll="True"
+                 >
+        <StackPanel Margin="32" MaxWidth="900">
+
+            <TextBlock Text="{DynamicResource Settings.GamePath}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12" />
+            <ui:TextBox Text="{Binding TldPath, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True" />
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,24">
+                <ui:Button Content="{DynamicResource Common.Browse}" Icon="FolderOpen24" Appearance="Secondary"
+                           Command="{Binding BrowseTldPathCommand}" Margin="0,0,8,0" />
+                <ui:Button Content="{DynamicResource Common.AutoDetect}" Icon="Search24" Command="{Binding AutoDetectCommand}" />
+            </StackPanel>
+
+            <TextBlock Text="{DynamicResource Settings.General}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12" />
+            <ui:CardControl Header="{DynamicResource Settings.DarkTheme}" Margin="0,0,0,8">
+                <ui:ToggleSwitch IsChecked="{Binding IsDarkTheme}" />
+            </ui:CardControl>
+            <ui:CardControl Header="{DynamicResource Settings.CheckUpdates}" Margin="0,0,0,8">
+                <ui:ToggleSwitch IsChecked="{Binding CheckUpdatesOnStart}" />
+            </ui:CardControl>
+            <ui:CardControl Header="{DynamicResource Settings.ExperimentalBranch}" Margin="0,0,0,8">
+                <ui:ToggleSwitch IsChecked="{Binding UseExperimentalBranch}" />
+            </ui:CardControl>
+            <ui:CardControl Header="{DynamicResource Settings.ItemsPerPage}" Margin="0,0,0,8">
+                <ui:NumberBox Value="{Binding ItemsPerPage}" Minimum="6" Maximum="120" />
+            </ui:CardControl>
+            <ui:CardControl Header="{DynamicResource Settings.DisplaySource}" Margin="0,0,0,8">
+                <ComboBox ItemsSource="{Binding SourceNames}" SelectedIndex="{Binding DisplaySourceIndex}"
+                          MinWidth="150" />
+            </ui:CardControl>
+            <ui:CardControl Header="{DynamicResource Settings.DownloadSource}" Margin="0,0,0,8">
+                <ComboBox MinWidth="150" x:Name="DownloadSourceCombo"
+                          SelectedIndex="{Binding DownloadSourceComboIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <ComboBoxItem Content="{DynamicResource Settings.AskEveryTime}" />
+                    <ComboBoxItem Content="Official (English)" />
+                    <ComboBoxItem Content="{DynamicResource Source.ChineseShort}" />
+                </ComboBox>
+            </ui:CardControl>
+            <ui:CardControl Header="{DynamicResource Settings.Language}" Margin="0,0,0,24">
+                <ComboBox MinWidth="150" SelectedIndex="{Binding LanguageIndex}">
+                    <ComboBoxItem Content="{DynamicResource Settings.Chinese}" />
+                    <ComboBoxItem Content="English" />
+                </ComboBox>
+            </ui:CardControl>
+
+            <TextBlock Text="{DynamicResource Settings.SubmitService}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <TextBlock Opacity="0.7" Margin="0,0,0,12"
+                       Text="{DynamicResource Settings.SubmitDesc}" />
+            <ui:TextBox PlaceholderText="{DynamicResource Settings.EndpointPlaceholder}" Text="{Binding SubmissionEndpoint, UpdateSourceTrigger=PropertyChanged}"
+                        Margin="0,0,0,8" />
+            <ui:TextBox PlaceholderText="{DynamicResource Settings.UsernamePlaceholder}" Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}"
+                        Margin="0,0,0,8" />
+            <ui:PasswordBox PlaceholderText="{DynamicResource Settings.PasswordPlaceholder}" Password="{Binding FtpPassword, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="0,0,0,24" />
+
+            <!-- 操作日志 -->
+            <TextBlock Text="{DynamicResource Settings.OperationLog}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" Opacity="0.8" />
+            <Border Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="8" Padding="8"
+                    MaxHeight="200" Margin="0,0,0,12">
+                <ListBox ItemsSource="{Binding LogEntries}" Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="11" TextWrapping="NoWrap" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <TextBlock Text="{Binding StatusMessage}" Opacity="0.7" Margin="0,8,0,0" FontSize="12" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

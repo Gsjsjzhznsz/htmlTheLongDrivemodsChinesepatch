@@ -1,0 +1,10 @@
+bin/
+obj/
+*.user
+.vs/
+*.suo
+[Bb]uild/
+[Ll]og/
+[Dd]ebug/
+[Rr]elease/
+*.log

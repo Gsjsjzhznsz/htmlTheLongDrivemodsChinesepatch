@@ -1,0 +1,162 @@
+<Page x:Class="TLDWorkshop.App.Views.ModpackPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:models="clr-namespace:TLDWorkshop.Core.Models;assembly=TLDWorkshop.Core"
+      xmlns:ctrl="clr-namespace:TLDWorkshop.App.Controls"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      mc:Ignorable="d"
+      Title="{DynamicResource Nav.Modpack}">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="Bool2Vis" />
+    </Page.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 工具栏：刷新 + 导入 + 导出 -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ui:Button Grid.Column="0" Content="{DynamicResource Common.Refresh}" Icon="ArrowSync24"
+                       Command="{Binding RefreshCommand}" Appearance="Secondary" Margin="0,0,12,0" />
+            <ui:TextBox Grid.Column="1" PlaceholderText="{DynamicResource Modpack.NamePlaceholder}"
+                        Text="{Binding PackName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,12,0" />
+            <ui:Button Grid.Column="2" Content="{DynamicResource Modpack.Export}" Icon="Save24"
+                       Command="{Binding ExportModpackCommand}" Appearance="Secondary" Margin="0,0,8,0" />
+            <ui:Button Grid.Column="3" Content="{DynamicResource Modpack.Import}" Icon="FolderOpen24"
+                       Command="{Binding ImportModpackCommand}" Appearance="Secondary" />
+        </Grid>
+
+        <!-- 详情面板：双源并排 -->
+        <Border Grid.Row="1" Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="8"
+                Padding="24" Margin="0,0,0,12"
+                Visibility="{Binding IsDetailVisible, Converter={StaticResource Bool2Vis}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="500" PanningMode="VerticalOnly"
+                          CanContentScroll="False" ctrl:ScrollViewerHelper.EnableWheelScroll="True">
+                <StackPanel HorizontalAlignment="Center" MaxWidth="700">
+                    <TextBlock Text="{Binding SelectedModpack.DisplayFileName}" FontSize="14" Opacity="0.5"
+                               HorizontalAlignment="Center" Margin="0,0,0,12" />
+
+                    <!-- 两个源并排 -->
+                    <UniformGrid Columns="2" Margin="0,0,0,16">
+                        <!-- 官方源 -->
+                        <StackPanel Margin="0,0,8,0">
+                            <TextBlock Text="{DynamicResource Source.Official}" FontWeight="SemiBold" HorizontalAlignment="Center"
+                                       Margin="0,0,0,8" />
+                            <Border Width="160" Height="160" CornerRadius="8" HorizontalAlignment="Center"
+                                    Background="{DynamicResource ControlFillColorSecondaryBrush}" Margin="0,0,0,8">
+                                <ctrl:AsyncImage Url="{Binding SelectedModpack.Official.PictureLink}" Stretch="UniformToFill" />
+                            </Border>
+                            <TextBlock Text="{Binding SelectedModpack.Official.Name}" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,0,2" />
+                            <TextBlock Text="{Binding SelectedModpack.Official.Version}" Opacity="0.6" FontSize="11"
+                                       HorizontalAlignment="Center" Margin="0,0,0,4" />
+                            <TextBlock Text="{Binding SelectedModpack.Official.Description}" TextWrapping="Wrap"
+                                       Opacity="0.8" FontSize="12" MaxHeight="100" TextTrimming="CharacterEllipsis"
+                                       TextAlignment="Center" />
+                        </StackPanel>
+                        <!-- 中文源 -->
+                        <StackPanel Margin="8,0,0,0">
+                            <TextBlock Text="{DynamicResource Source.Chinese}" FontWeight="SemiBold" HorizontalAlignment="Center"
+                                       Margin="0,0,0,8" />
+                            <Border Width="160" Height="160" CornerRadius="8" HorizontalAlignment="Center"
+                                    Background="{DynamicResource ControlFillColorSecondaryBrush}" Margin="0,0,0,8">
+                                <ctrl:AsyncImage Url="{Binding SelectedModpack.Jihu.PictureLink}" Stretch="UniformToFill" />
+                            </Border>
+                            <TextBlock Text="{Binding SelectedModpack.Jihu.Name}" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,0,2" />
+                            <TextBlock Text="{Binding SelectedModpack.Jihu.Version}" Opacity="0.6" FontSize="11"
+                                       HorizontalAlignment="Center" Margin="0,0,0,4" />
+                            <TextBlock Text="{Binding SelectedModpack.Jihu.Description}" TextWrapping="Wrap"
+                                       Opacity="0.8" FontSize="12" MaxHeight="100" TextTrimming="CharacterEllipsis"
+                                       TextAlignment="Center" />
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <ui:Button Content="{DynamicResource Common.Install}" Appearance="Primary" Icon="ArrowDownload24"
+                                   Command="{Binding InstallModpackCommand}"
+                                   CommandParameter="{Binding SelectedModpack}"
+                                   Margin="0,0,8,0" MinWidth="100" />
+                        <ui:Button Content="{DynamicResource Common.Back}" Icon="ArrowLeft24" Command="{Binding BackToListCommand}"
+                                   Appearance="Secondary" MinWidth="80" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 模组包列表：用 ItemsControl + UniformGrid，不滚动，靠列表本身高度
+             模组包数量少（5-6 个），一页能放下，不需要滚动 -->
+        <ItemsControl Grid.Row="2" ItemsSource="{Binding OnlineModpacks}"
+                      Visibility="{Binding IsListVisible, Converter={StaticResource Bool2Vis}}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type models:MergedModpack}">
+                    <Border Margin="0,0,0,8" Padding="16"
+                            Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="8"
+                            Cursor="Hand"
+                            MouseLeftButtonDown="Card_Click">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Width="80" Height="80" CornerRadius="6"
+                                    Background="{DynamicResource ControlFillColorSecondaryBrush}" Margin="0,0,12,0">
+                                <ctrl:AsyncImage Url="{Binding DisplayPicture}" Stretch="UniformToFill" />
+                            </Border>
+                            <StackPanel Grid.Column="1">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding DisplayName}" FontSize="16" FontWeight="SemiBold" />
+                                    <!-- 双源徽章 -->
+                                    <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                            CornerRadius="4" Padding="6,1" Margin="8,0,0,0"
+                                            Visibility="{Binding HasBothSources, Converter={StaticResource Bool2Vis}}">
+                                        <TextBlock Text="{DynamicResource Modpack.DualSource}" FontSize="10" Opacity="0.7" />
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,4">
+                                    <TextBlock Text="{DynamicResource Modpack.Author}" Opacity="0.7" FontSize="12" />
+                                    <TextBlock Text="{Binding DisplayAuthor, Mode=OneWay}" Opacity="0.7" FontSize="12" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding DisplayDescription}" Opacity="0.85"
+                                           TextWrapping="Wrap" MaxHeight="50" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <ui:Button Grid.Column="2" Content="{DynamicResource Common.Install}" Appearance="Primary" Icon="ArrowDownload24"
+                                       VerticalAlignment="Center" Margin="8,0,0,0"
+                                       Command="{Binding DataContext.InstallModpackCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                       CommandParameter="{Binding}" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- 底部进度条 -->
+        <StackPanel Grid.Row="3" Margin="0,8,0,0">
+            <Grid Margin="0,0,0,4">
+                <TextBlock Text="{Binding StatusMessage}" Opacity="0.7" />
+                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Opacity="0.7"
+                            Visibility="{Binding IsBusy, Converter={StaticResource Bool2Vis}}">
+                    <TextBlock Text="{Binding CompletedMods, Mode=OneWay}" />
+                    <TextBlock Text=" / " />
+                    <TextBlock Text="{Binding TotalMods, Mode=OneWay}" />
+                </StackPanel>
+            </Grid>
+            <ProgressBar Value="{Binding Progress}" Maximum="100" Height="6"
+                         Visibility="{Binding IsBusy, Converter={StaticResource Bool2Vis}}" />
+        </StackPanel>
+    </Grid>
+</Page>

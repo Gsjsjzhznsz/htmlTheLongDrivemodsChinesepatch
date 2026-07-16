@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English resource dictionary -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <!-- Navigation -->
+    <sys:String x:Key="Nav.Home">Home</sys:String>
+    <sys:String x:Key="Nav.TldLoader">TLDLoader</sys:String>
+    <sys:String x:Key="Nav.Browse">Browse Mods</sys:String>
+    <sys:String x:Key="Nav.MyMods">My Mods</sys:String>
+    <sys:String x:Key="Nav.Modpack">Modpack</sys:String>
+    <sys:String x:Key="Nav.Submit">Submit Mod</sys:String>
+    <sys:String x:Key="Nav.Settings">Settings</sys:String>
+
+    <!-- Common -->
+    <sys:String x:Key="Common.Refresh">Refresh</sys:String>
+    <sys:String x:Key="Common.Back">Back</sys:String>
+    <sys:String x:Key="Common.Install">Install</sys:String>
+    <sys:String x:Key="Common.Uninstall">Uninstall</sys:String>
+    <sys:String x:Key="Common.Cancel">Cancel</sys:String>
+    <sys:String x:Key="Common.OK">OK</sys:String>
+    <sys:String x:Key="Common.Browse">Browse...</sys:String>
+    <sys:String x:Key="Common.AutoDetect">Auto Detect</sys:String>
+    <sys:String x:Key="Common.DownloadUpdate">Download/Update</sys:String>
+    <sys:String x:Key="Common.Reinstall">Reinstall</sys:String>
+
+    <!-- Home -->
+    <sys:String x:Key="Home.Title">TLD Workshop</sys:String>
+    <sys:String x:Key="Home.Subtitle">The Long Drive Workshop</sys:String>
+    <sys:String x:Key="Home.BrowseMods">Browse Mods</sys:String>
+    <sys:String x:Key="Home.InstallLoader">Install Loader</sys:String>
+    <sys:String x:Key="Home.MyMods">My Mods</sys:String>
+    <sys:String x:Key="Home.Settings">Settings</sys:String>
+    <sys:String x:Key="Home.GamePath">Game Path</sys:String>
+    <sys:String x:Key="Home.GoSettings">Go to Settings</sys:String>
+    <sys:String x:Key="Home.LoaderStatus">TLDLoader Status</sys:String>
+    <sys:String x:Key="Home.Status">Status</sys:String>
+    <sys:String x:Key="Home.LoaderVersion">TLDLoader Version</sys:String>
+    <sys:String x:Key="Home.GameVersion">Game Version</sys:String>
+    <sys:String x:Key="Home.GoTldLoader">Go to TLDLoader Manager</sys:String>
+
+    <!-- Browse -->
+    <sys:String x:Key="Browse.Title">Browse Mods</sys:String>
+    <sys:String x:Key="Browse.SearchPlaceholder">Search mods...</sys:String>
+    <sys:String x:Key="Browse.SwitchMyMods">Switch to My Mods</sys:String>
+    <sys:String x:Key="Browse.AllCategories">All Categories</sys:String>
+    <sys:String x:Key="Browse.PreviousPage">Previous</sys:String>
+    <sys:String x:Key="Browse.NextPage">Next</sys:String>
+    <sys:String x:Key="Browse.Page">Page </sys:String>
+    <sys:String x:Key="Browse.PageOf"> of </sys:String>
+    <sys:String x:Key="Browse.ModsEnd"> mods</sys:String>
+
+    <!-- MyMods -->
+    <sys:String x:Key="MyMods.Title">My Mods</sys:String>
+    <sys:String x:Key="MyMods.OpenFolder">Open Mods Folder</sys:String>
+    <sys:String x:Key="MyMods.EnableAll">Enable All</sys:String>
+    <sys:String x:Key="MyMods.DisableAll">Disable All</sys:String>
+    <sys:String x:Key="MyMods.SearchPlaceholder">Search...</sys:String>
+    <sys:String x:Key="MyMods.TotalPrefix"></sys:String>
+    <sys:String x:Key="MyMods.TotalSuffix"> installed mods</sys:String>
+
+    <!-- Modpack -->
+    <sys:String x:Key="Modpack.Title">Modpack</sys:String>
+    <sys:String x:Key="Modpack.NamePlaceholder">Modpack Name</sys:String>
+    <sys:String x:Key="Modpack.Export">Export Modpack</sys:String>
+    <sys:String x:Key="Modpack.Import">Import Modpack</sys:String>
+    <sys:String x:Key="Modpack.DualSource">Both</sys:String>
+    <sys:String x:Key="Modpack.Author">Author: </sys:String>
+
+    <!-- TldLoader -->
+    <sys:String x:Key="TldLoader.Title">TLDLoader Manager</sys:String>
+    <sys:String x:Key="TldLoader.Subtitle">Install, uninstall, update The Long Drive mod loader</sys:String>
+    <sys:String x:Key="TldLoader.GamePath">Game Path</sys:String>
+    <sys:String x:Key="TldLoader.Status">Status</sys:String>
+    <sys:String x:Key="TldLoader.LoaderVersion">TLDLoader Version</sys:String>
+    <sys:String x:Key="TldLoader.GameVersion">Game Version</sys:String>
+    <sys:String x:Key="TldLoader.InstallUpdate">Install/Update</sys:String>
+    <sys:String x:Key="TldLoader.Uninstall">Uninstall</sys:String>
+    <sys:String x:Key="TldLoader.LaunchGame">Launch Game</sys:String>
+    <sys:String x:Key="TldLoader.OpenMods">Open Mods Folder</sys:String>
+    <sys:String x:Key="TldLoader.RefreshStatus">Refresh Status</sys:String>
+    <sys:String x:Key="TldLoader.DownloadAll">Download All Resources</sys:String>
+    <sys:String x:Key="TldLoader.DownloadAllTip">Download dependency DLLs + core assets</sys:String>
+    <sys:String x:Key="TldLoader.DownloadChinese">Download Chinese Loader</sys:String>
+    <sys:String x:Key="TldLoader.DownloadChineseTip">Download Chinese TLDLoader.dll from GitHub</sys:String>
+    <sys:String x:Key="TldLoader.OperationLog">Operation Log</sys:String>
+
+    <!-- Settings -->
+    <sys:String x:Key="Settings.Title">Settings</sys:String>
+    <sys:String x:Key="Settings.GamePath">Game Path</sys:String>
+    <sys:String x:Key="Settings.General">General</sys:String>
+    <sys:String x:Key="Settings.DarkTheme">Dark Theme</sys:String>
+    <sys:String x:Key="Settings.CheckUpdates">Check for updates on startup</sys:String>
+    <sys:String x:Key="Settings.ExperimentalBranch">Use experimental branch</sys:String>
+    <sys:String x:Key="Settings.ItemsPerPage">Mods per page</sys:String>
+    <sys:String x:Key="Settings.DisplaySource">List display source</sys:String>
+    <sys:String x:Key="Settings.DownloadSource">Default download source</sys:String>
+    <sys:String x:Key="Settings.AskEveryTime">Ask every time</sys:String>
+    <sys:String x:Key="Settings.Language">Language</sys:String>
+    <sys:String x:Key="Settings.Chinese">中文</sys:String>
+    <sys:String x:Key="Settings.English">English</sys:String>
+    <sys:String x:Key="Settings.SubmitService">Mod Submission Service</sys:String>
+    <sys:String x:Key="Settings.SubmitDesc">FTP submission service (ported from original exe). Default credentials are filled in.</sys:String>
+    <sys:String x:Key="Settings.EndpointPlaceholder">FTP endpoint (default filled)</sys:String>
+    <sys:String x:Key="Settings.UsernamePlaceholder">Username (default kolben1000)</sys:String>
+    <sys:String x:Key="Settings.PasswordPlaceholder">Password (default Kolben1000)</sys:String>
+    <sys:String x:Key="Settings.OperationLog">Operation Log</sys:String>
+    <sys:String x:Key="Settings.Saved">Settings auto-saved</sys:String>
+
+    <!-- Source names -->
+    <sys:String x:Key="Source.Official">🌍 Official (English)</sys:String>
+    <sys:String x:Key="Source.Chinese">🌐 Chinese Mirror</sys:String>
+    <sys:String x:Key="Source.OfficialShort">Official (English)</sys:String>
+    <sys:String x:Key="Source.ChineseShort">Chinese Mirror</sys:String>
+
+    <!-- Source dialog -->
+    <sys:String x:Key="SourceDialog.Title">Select Download Source</sys:String>
+    <sys:String x:Key="SourceDialog.Subtitle">Please select a download source</sys:String>
+    <sys:String x:Key="SourceDialog.Remember">Remember this choice (can change in Settings)</sys:String>
+
+    <!-- Submit -->
+    <sys:String x:Key="Submit.Title">Submit Mod</sys:String>
+    <sys:String x:Key="Submit.Header">Submit your mod to Workshop</sys:String>
+    <sys:String x:Key="Submit.Desc">Admins will review your submission. Approved mods appear in the public list.</sys:String>
+    <sys:String x:Key="Submit.ModName">Mod Name</sys:String>
+    <sys:String x:Key="Submit.Author">Author (your Discord username)</sys:String>
+    <sys:String x:Key="Submit.Version">Version (optional)</sys:String>
+    <sys:String x:Key="Submit.Description">Short description</sys:String>
+    <sys:String x:Key="Submit.Submit">Submit</sys:String>
+
+    <!-- ViewModel status messages -->
+    <sys:String x:Key="Msg.MergingMods">Merging mod lists from both sources...</sys:String>
+    <sys:String x:Key="Msg.ModsLoaded">Loaded {0} mods (merged sources)</sys:String>
+    <sys:String x:Key="Msg.LoadFailed">Load failed: {0}</sys:String>
+    <sys:String x:Key="Msg.Downloading">Downloading {0} ({1})...</sys:String>
+    <sys:String x:Key="Msg.InstallDone">{0} installed!</sys:String>
+    <sys:String x:Key="Msg.InstallSuccess">{0} v{1} installed.</sys:String>
+    <sys:String x:Key="Msg.InstallFailed">Install failed</sys:String>
+    <sys:String x:Key="Msg.DownloadFailed">Download failed</sys:String>
+    <sys:String x:Key="Msg.ScanningSteam">Scanning Steam library...</sys:String>
+    <sys:String x:Key="Msg.AutoDetected">Auto-detected: {0}</sys:String>
+    <sys:String x:Key="Msg.GameNotFound">Game not found, please select manually in Settings</sys:String>
+    <sys:String x:Key="Msg.GameNotFoundManual">TLD installation not found, please select manually.</sys:String>
+    <sys:String x:Key="Msg.InitFailed">Init failed: {0}</sys:String>
+    <sys:String x:Key="Msg.MergingModpacks">Merging modpack lists from both sources...</sys:String>
+    <sys:String x:Key="Msg.ModpacksLoaded">{0} modpacks ({1} with both sources)</sys:String>
+    <sys:String x:Key="Msg.NoDownloadLink">This modpack has no download link.</sys:String>
+    <sys:String x:Key="Msg.InstallingModpack">Installing modpack {0}...</sys:String>
+    <sys:String x:Key="Msg.InstallComplete">Install complete: {0} succeeded</sys:String>
+    <sys:String x:Key="Msg.ModpackInstallDone">Modpack {0} installed.\nSuccess {1}, total {2}.</sys:String>
+    <sys:String x:Key="Msg.Importing">Importing modpack...</sys:String>
+    <sys:String x:Key="Msg.ImportComplete">Import complete: {0} succeeded</sys:String>
+    <sys:String x:Key="Msg.ImportDone">Success {0}, total {1}.</sys:String>
+    <sys:String x:Key="Msg.ImportFailed">Import failed</sys:String>
+    <sys:String x:Key="Msg.EnterName">Please enter a modpack name.</sys:String>
+    <sys:String x:Key="Msg.ExportDone">Saved to:\n{0}</sys:String>
+    <sys:String x:Key="Msg.ExportFailed">Export failed</sys:String>
+    <sys:String x:Key="Msg.Hint">Hint</sys:String>
+    <sys:String x:Key="Msg.Success">Success</sys:String>
+    <sys:String x:Key="Msg.Error">Error</sys:String>
+    <sys:String x:Key="Msg.Confirm">Confirm</sys:String>
+    <sys:String x:Key="Msg.ModsDirNotFound">Mods directory does not exist. Install TLDLoader or download some mods first.</sys:String>
+    <sys:String x:Key="Msg.ScanningInstalled">Scanning installed mods...</sys:String>
+    <sys:String x:Key="Msg.InstalledCount">{0} installed mods</sys:String>
+    <sys:String x:Key="Msg.ScanFailed">Scan failed: {0}</sys:String>
+    <sys:String x:Key="Msg.UninstallConfirm">Uninstall mod [{0}]?\nWill delete {1} and its folder.</sys:String>
+    <sys:String x:Key="Msg.Uninstalled">Uninstalled {0}</sys:String>
+    <sys:String x:Key="Msg.UninstallFailed">Uninstall failed</sys:String>
+    <sys:String x:Key="Msg.Reinstalling">Reinstalling {0}...</sys:String>
+    <sys:String x:Key="Msg.ReinstallDone">Reinstall complete: {0} v{1}</sys:String>
+    <sys:String x:Key="Msg.ReinstallFailed">Reinstall failed</sys:String>
+    <sys:String x:Key="Msg.SettingsSaved">Settings auto-saved</sys:String>
+    <sys:String x:Key="Msg.InfoIncomplete">Please fill in mod name and author.</sys:String>
+    <sys:String x:Key="Msg.FileNotFound">Please select a mod file to submit.</sys:String>
+    <sys:String x:Key="Msg.NoSubmitService">Please configure FTP submission service in Settings first.</sys:String>
+    <sys:String x:Key="Msg.ConnectingFTP">Connecting to FTP server...</sys:String>
+    <sys:String x:Key="Msg.PreparingFiles">Preparing submission files...</sys:String>
+    <sys:String x:Key="Msg.Packing">Packing...</sys:String>
+    <sys:String x:Key="Msg.DownloadingExisting">Downloading existing submissions...</sys:String>
+    <sys:String x:Key="Msg.Repacking">Repacking...</sys:String>
+    <sys:String x:Key="Msg.Uploading">Uploading to FTP server...</sys:String>
+    <sys:String x:Key="Msg.SubmitDone">Submitted! Waiting for review.</sys:String>
+    <sys:String x:Key="Msg.SubmitSuccess">Thank you for your submission. We will review it soon.\n\nYour mod has been uploaded to the FTP server.</sys:String>
+    <sys:String x:Key="Msg.SubmitFailed">Submit failed</sys:String>
+    <sys:String x:Key="Msg.DetectingLoader">Detecting TLDLoader status...</sys:String>
+    <sys:String x:Key="Msg.NeedPath">Please select TLD installation directory in Settings first</sys:String>
+    <sys:String x:Key="Msg.LoaderInstalled">TLDLoader installed and running</sys:String>
+    <sys:String x:Key="Msg.ClickInstall">Click the button below to install TLDLoader</sys:String>
+    <sys:String x:Key="Msg.NeedsUpdate">TLDLoader.dll version mismatch, update recommended</sys:String>
+    <sys:String x:Key="Msg.WillCleanOld">Will clean old files and reinstall</sys:String>
+    <sys:String x:Key="Msg.WillUpgrade">Will upgrade to latest version</sys:String>
+    <sys:String x:Key="Msg.GameUpdated">Game was updated by Steam, TLDLoader needs reinstall</sys:String>
+    <sys:String x:Key="Msg.DownloadingAll">Downloading all resources...</sys:String>
+    <sys:String x:Key="Msg.AllResourcesReady">All TLDLoader resources ready.</sys:String>
+    <sys:String x:Key="Msg.DownloadFailedShort">Download failed</sys:String>
+    <sys:String x:Key="Msg.DownloadingChinese">Downloading Chinese mod loader...</sys:String>
+    <sys:String x:Key="Msg.ChineseLoaderDone">Chinese TLDLoader.dll downloaded. Will be used on next install.</sys:String>
+    <sys:String x:Key="Msg.DownloadingDeps">Downloading dependency DLLs...</sys:String>
+    <sys:String x:Key="Msg.DepsUpdated">Dependency DLLs updated.</sys:String>
+    <sys:String x:Key="Msg.DownloadingCore">Downloading core assets...</sys:String>
+    <sys:String x:Key="Msg.CoreReady">Core assets ready.</sys:String>
+    <sys:String x:Key="Msg.NeedConfigPath">Please click [Select Game Path] to configure TLD directory first.</sys:String>
+    <sys:String x:Key="Msg.GameRunning">Please close The Long Drive before installing/updating TLDLoader.</sys:String>
+    <sys:String x:Key="Msg.Operating">Operating, please wait...</sys:String>
+    <sys:String x:Key="Msg.OperationDone">TLDLoader operation completed.</sys:String>
+    <sys:String x:Key="Msg.OperationFailed">Operation failed</sys:String>
+    <sys:String x:Key="Msg.UninstallConfirmLoader">Are you sure you want to remove TLDLoader? All mods will be disabled.</sys:String>
+    <sys:String x:Key="Msg.GameRunningUninstall">Please close The Long Drive before uninstalling TLDLoader.</sys:String>
+    <sys:String x:Key="Msg.Uninstalling">Uninstalling...</sys:String>
+    <sys:String x:Key="Msg.UninstalledLoader">TLDLoader removed successfully.</sys:String>
+    <sys:String x:Key="Msg.UninstallFailedShort">Uninstall failed</sys:String>
+    <sys:String x:Key="Msg.LaunchFailed">Cannot launch game. Is Steam installed?\n\nError: {0}</sys:String>
+    <sys:String x:Key="Msg.DirNotExist">Mods directory does not exist. Install TLDLoader first.</sys:String>
+    <sys:String x:Key="Msg.PathInvalid">TheLongDrive.exe not found in selected directory. Please select game root.</sys:String>
+    <sys:String x:Key="Msg.GameNotFoundShort">The Long Drive not found in Steam library. Please select manually.</sys:String>
+    <sys:String x:Key="Msg.InstallSuccessShort">Install Success</sys:String>
+    <sys:String x:Key="Msg.OperationSuccess">Operation Success</sys:String>
+    <sys:String x:Key="Msg.DownloadComplete">Download Complete</sys:String>
+    <sys:String x:Key="Msg.PathNotFound">Invalid Path</sys:String>
+    <sys:String x:Key="Msg.GameRunningShort">Game Running</sys:String>
+    <sys:String x:Key="Msg.LaunchFailedShort">Launch Failed</sys:String>
+    <sys:String x:Key="Msg.DirNotExistShort">Directory Not Found</sys:String>
+    <sys:String x:Key="Msg.NeedConfigPathShort">Path Required</sys:String>
+    <sys:String x:Key="Msg.GameNotFoundShortTitle">Game Not Found</sys:String>
+
+    <!-- TldLoader StateText -->
+    <sys:String x:Key="State.NotDetected">Not Detected</sys:String>
+    <sys:String x:Key="State.NoPath">Game path not configured</sys:String>
+    <sys:String x:Key="State.DetectFailed">Detect failed: {0}</sys:String>
+    <sys:String x:Key="State.Patched">Installed, running normally</sys:String>
+    <sys:String x:Key="State.NotPatched">Not installed</sys:String>
+    <sys:String x:Key="State.NeedsDllUpdate">Installed, needs TLDLoader.dll update</sys:String>
+    <sys:String x:Key="State.OldFilesFound">Found 0.1 version remnants (clean and reinstall)</sys:String>
+    <sys:String x:Key="State.OldPatchFound">Found old patch (upgrade needed)</sys:String>
+    <sys:String x:Key="State.GameUpdated">Game updated, patch invalid (reinstall)</sys:String>
+    <sys:String x:Key="State.Unknown">Unknown</sys:String>
+    <!-- SourceSelectionDialog -->
+    <sys:String x:Key="SourceDialog.Author">Author: {0}</sys:String>
+    <!-- Category translations -->
+    <sys:String x:Key="Category.Buildings">Buildings</sys:String>
+    <sys:String x:Key="Category.Cheats">Cheats</sys:String>
+    <sys:String x:Key="Category.Cosmetic">Cosmetic</sys:String>
+    <sys:String x:Key="Category.Engines">Engines</sys:String>
+    <sys:String x:Key="Category.GUI">GUI</sys:String>
+    <sys:String x:Key="Category.Gameplay">Gameplay</sys:String>
+    <sys:String x:Key="Category.Graphical">Graphical</sys:String>
+    <sys:String x:Key="Category.Items">Items</sys:String>
+    <sys:String x:Key="Category.LEGACY">LEGACY</sys:String>
+    <sys:String x:Key="Category.ModdingLibary">ModdingLibary</sys:String>
+    <sys:String x:Key="Category.Mods of Mods">Mods of Mods</sys:String>
+    <sys:String x:Key="Category.NPC">NPC</sys:String>
+    <sys:String x:Key="Category.Performance">Performance</sys:String>
+    <sys:String x:Key="Category.QOL">QOL</sys:String>
+    <sys:String x:Key="Category.Vehicles">Vehicles</sys:String>
+    <sys:String x:Key="Category.weapons">Weapons</sys:String>
+    <sys:String x:Key="Category.Local">Local</sys:String>
+    <sys:String x:Key="Category.游戏玩法">Gameplay</sys:String>
+</ResourceDictionary>

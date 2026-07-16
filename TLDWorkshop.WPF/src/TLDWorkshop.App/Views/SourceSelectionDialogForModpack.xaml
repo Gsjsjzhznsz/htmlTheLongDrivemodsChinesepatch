@@ -1,0 +1,46 @@
+<Window x:Class="TLDWorkshop.App.Views.SourceSelectionDialogForModpack"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="{DynamicResource SourceDialog.Title}" Width="500" Height="Auto"
+        SizeToContent="Height" WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <StackPanel Margin="24">
+        <TextBlock Text="{DynamicResource SourceDialog.Subtitle}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4" />
+        <TextBlock x:Name="ModNameText" Opacity="0.7" Margin="0,0,0,20" />
+
+        <!-- 官方源 -->
+        <Border x:Name="OfficialPanel" Background="{DynamicResource ControlFillColorDefaultBrush}"
+                CornerRadius="8" Padding="16" Margin="0,0,0,8" Cursor="Hand"
+                MouseLeftButtonDown="OfficialButton_Click">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🌍 " FontSize="16" VerticalAlignment="Center" />
+                    <TextBlock Text="Official source (English)" FontSize="15" FontWeight="SemiBold" />
+                </StackPanel>
+                <TextBlock x:Name="OfficialNameText" Opacity="0.7" FontSize="12" Margin="0,4,0,0" />
+                <TextBlock x:Name="OfficialVersionText" Opacity="0.6" FontSize="11" Margin="0,2,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- 极狐源 -->
+        <Border x:Name="JihuPanel" Background="{DynamicResource ControlFillColorDefaultBrush}"
+                CornerRadius="8" Padding="16" Margin="0,0,0,16" Cursor="Hand"
+                MouseLeftButtonDown="JihuButton_Click">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🌐 " FontSize="16" VerticalAlignment="Center" />
+                    <TextBlock Text="{DynamicResource Source.ChineseShort}" FontSize="15" FontWeight="SemiBold" />
+                </StackPanel>
+                <TextBlock x:Name="JihuNameText" Opacity="0.7" FontSize="12" Margin="0,4,0,0" />
+                <TextBlock x:Name="JihuVersionText" Opacity="0.6" FontSize="11" Margin="0,2,0,0" />
+            </StackPanel>
+        </Border>
+
+        <CheckBox x:Name="RememberCheckBox" Content="{DynamicResource SourceDialog.Remember}"
+                  Margin="0,0,0,16" />
+
+        <ui:Button Content="{DynamicResource Common.Cancel}" Appearance="Secondary" HorizontalAlignment="Right"
+                   Click="CancelButton_Click" MinWidth="80" />
+    </StackPanel>
+</Window>

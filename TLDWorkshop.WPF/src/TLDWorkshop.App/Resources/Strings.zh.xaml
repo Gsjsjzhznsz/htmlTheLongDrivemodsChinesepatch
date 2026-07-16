@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 中文资源字典 -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <!-- Navigation -->
+    <sys:String x:Key="Nav.Home">首页</sys:String>
+    <sys:String x:Key="Nav.TldLoader">TLDLoader</sys:String>
+    <sys:String x:Key="Nav.Browse">浏览模组</sys:String>
+    <sys:String x:Key="Nav.MyMods">我的模组</sys:String>
+    <sys:String x:Key="Nav.Modpack">模组包</sys:String>
+    <sys:String x:Key="Nav.Submit">提交模组</sys:String>
+    <sys:String x:Key="Nav.Settings">设置</sys:String>
+
+    <!-- Common -->
+    <sys:String x:Key="Common.Refresh">刷新</sys:String>
+    <sys:String x:Key="Common.Back">返回</sys:String>
+    <sys:String x:Key="Common.Install">安装</sys:String>
+    <sys:String x:Key="Common.Uninstall">卸载</sys:String>
+    <sys:String x:Key="Common.Cancel">取消</sys:String>
+    <sys:String x:Key="Common.OK">确定</sys:String>
+    <sys:String x:Key="Common.Browse">浏览...</sys:String>
+    <sys:String x:Key="Common.AutoDetect">自动检测</sys:String>
+    <sys:String x:Key="Common.DownloadUpdate">下载/更新</sys:String>
+    <sys:String x:Key="Common.Reinstall">重装</sys:String>
+
+    <!-- Home -->
+    <sys:String x:Key="Home.Title">长途旅行车间</sys:String>
+    <sys:String x:Key="Home.Subtitle">The Long Drive Workshop</sys:String>
+    <sys:String x:Key="Home.BrowseMods">浏览模组</sys:String>
+    <sys:String x:Key="Home.InstallLoader">安装加载器</sys:String>
+    <sys:String x:Key="Home.MyMods">我的模组</sys:String>
+    <sys:String x:Key="Home.Settings">设置</sys:String>
+    <sys:String x:Key="Home.GamePath">游戏路径</sys:String>
+    <sys:String x:Key="Home.GoSettings">去设置</sys:String>
+    <sys:String x:Key="Home.LoaderStatus">TLDLoader 状态</sys:String>
+    <sys:String x:Key="Home.Status">当前状态</sys:String>
+    <sys:String x:Key="Home.LoaderVersion">TLDLoader 版本</sys:String>
+    <sys:String x:Key="Home.GameVersion">游戏版本</sys:String>
+    <sys:String x:Key="Home.GoTldLoader">前往 TLDLoader 管理</sys:String>
+
+    <!-- Browse -->
+    <sys:String x:Key="Browse.Title">浏览模组</sys:String>
+    <sys:String x:Key="Browse.SearchPlaceholder">搜索模组...</sys:String>
+    <sys:String x:Key="Browse.SwitchMyMods">切换到我的模组</sys:String>
+    <sys:String x:Key="Browse.AllCategories">全部分类</sys:String>
+    <sys:String x:Key="Browse.PreviousPage">上一页</sys:String>
+    <sys:String x:Key="Browse.NextPage">下一页</sys:String>
+    <sys:String x:Key="Browse.Page">第 </sys:String>
+    <sys:String x:Key="Browse.PageOf"> 页（共 </sys:String>
+    <sys:String x:Key="Browse.ModsEnd"> 个）</sys:String>
+
+    <!-- MyMods -->
+    <sys:String x:Key="MyMods.Title">我的模组</sys:String>
+    <sys:String x:Key="MyMods.OpenFolder">打开 Mods 目录</sys:String>
+    <sys:String x:Key="MyMods.EnableAll">全部启用</sys:String>
+    <sys:String x:Key="MyMods.DisableAll">全部禁用</sys:String>
+    <sys:String x:Key="MyMods.SearchPlaceholder">搜索...</sys:String>
+    <sys:String x:Key="MyMods.TotalPrefix">共 </sys:String>
+    <sys:String x:Key="MyMods.TotalSuffix"> 个已安装模组</sys:String>
+
+    <!-- Modpack -->
+    <sys:String x:Key="Modpack.Title">模组包</sys:String>
+    <sys:String x:Key="Modpack.NamePlaceholder">模组包名称</sys:String>
+    <sys:String x:Key="Modpack.Export">导出模组包</sys:String>
+    <sys:String x:Key="Modpack.Import">导入模组包</sys:String>
+    <sys:String x:Key="Modpack.DualSource">双源</sys:String>
+    <sys:String x:Key="Modpack.Author">作者：</sys:String>
+
+    <!-- TldLoader -->
+    <sys:String x:Key="TldLoader.Title">TLDLoader 管理</sys:String>
+    <sys:String x:Key="TldLoader.Subtitle">安装、卸载、更新 The Long Drive 的模组加载器</sys:String>
+    <sys:String x:Key="TldLoader.GamePath">游戏路径</sys:String>
+    <sys:String x:Key="TldLoader.Status">当前状态</sys:String>
+    <sys:String x:Key="TldLoader.LoaderVersion">TLDLoader 版本</sys:String>
+    <sys:String x:Key="TldLoader.GameVersion">游戏版本</sys:String>
+    <sys:String x:Key="TldLoader.InstallUpdate">安装/更新</sys:String>
+    <sys:String x:Key="TldLoader.Uninstall">卸载</sys:String>
+    <sys:String x:Key="TldLoader.LaunchGame">启动游戏</sys:String>
+    <sys:String x:Key="TldLoader.OpenMods">打开 Mods 目录</sys:String>
+    <sys:String x:Key="TldLoader.RefreshStatus">刷新状态</sys:String>
+    <sys:String x:Key="TldLoader.DownloadAll">下载全部资源</sys:String>
+    <sys:String x:Key="TldLoader.DownloadAllTip">一键下载依赖 DLL + 核心资源</sys:String>
+    <sys:String x:Key="TldLoader.DownloadChinese">下载中文模组加载器</sys:String>
+    <sys:String x:Key="TldLoader.DownloadChineseTip">从 GitHub 下载中文版 TLDLoader.dll 替换英文版</sys:String>
+    <sys:String x:Key="TldLoader.OperationLog">操作日志</sys:String>
+
+    <!-- Settings -->
+    <sys:String x:Key="Settings.Title">设置</sys:String>
+    <sys:String x:Key="Settings.GamePath">游戏路径</sys:String>
+    <sys:String x:Key="Settings.General">常规</sys:String>
+    <sys:String x:Key="Settings.DarkTheme">暗色主题</sys:String>
+    <sys:String x:Key="Settings.CheckUpdates">启动时检查更新</sys:String>
+    <sys:String x:Key="Settings.ExperimentalBranch">使用实验性分支</sys:String>
+    <sys:String x:Key="Settings.ItemsPerPage">每页显示模组数</sys:String>
+    <sys:String x:Key="Settings.DisplaySource">列表显示源（封面/名称/简介）</sys:String>
+    <sys:String x:Key="Settings.DownloadSource">默认下载源（每次询问 / Official / 中文源）</sys:String>
+    <sys:String x:Key="Settings.AskEveryTime">每次询问</sys:String>
+    <sys:String x:Key="Settings.Language">语言 / Language</sys:String>
+    <sys:String x:Key="Settings.Chinese">中文</sys:String>
+    <sys:String x:Key="Settings.English">English</sys:String>
+    <sys:String x:Key="Settings.SubmitService">模组提交服务</sys:String>
+    <sys:String x:Key="Settings.SubmitDesc">FTP 提交服务（从原 exe 移植）。默认凭据已填入，如需修改请覆盖。</sys:String>
+    <sys:String x:Key="Settings.EndpointPlaceholder">FTP 提交端点 (默认已填)</sys:String>
+    <sys:String x:Key="Settings.UsernamePlaceholder">用户名 (默认 kolben1000)</sys:String>
+    <sys:String x:Key="Settings.PasswordPlaceholder">密码 (默认 Kolben1000)</sys:String>
+    <sys:String x:Key="Settings.OperationLog">操作日志</sys:String>
+    <sys:String x:Key="Settings.Saved">设置已自动保存</sys:String>
+
+    <!-- Source names -->
+    <sys:String x:Key="Source.Official">🌍 官方源 (英文)</sys:String>
+    <sys:String x:Key="Source.Chinese">🌐 中文源 (镜像)</sys:String>
+    <sys:String x:Key="Source.OfficialShort">Official (English)</sys:String>
+    <sys:String x:Key="Source.ChineseShort">中文源 (镜像)</sys:String>
+
+    <!-- Source dialog -->
+    <sys:String x:Key="SourceDialog.Title">选择下载源</sys:String>
+    <sys:String x:Key="SourceDialog.Subtitle">请选择下载源</sys:String>
+    <sys:String x:Key="SourceDialog.Remember">下次默认使用此源（可在设置中修改）</sys:String>
+
+    <!-- Submit -->
+    <sys:String x:Key="Submit.Title">提交模组</sys:String>
+    <sys:String x:Key="Submit.Header">提交你的模组到 Workshop</sys:String>
+    <sys:String x:Key="Submit.Desc">提交后管理员会审核。审核通过后会出现在公开列表中。</sys:String>
+    <sys:String x:Key="Submit.ModName">模组名称</sys:String>
+    <sys:String x:Key="Submit.Author">作者（你的 Discord 用户名）</sys:String>
+    <sys:String x:Key="Submit.Version">版本号（可选）</sys:String>
+    <sys:String x:Key="Submit.Description">简短描述</sys:String>
+    <sys:String x:Key="Submit.Submit">提交</sys:String>
+
+    <!-- ViewModel 状态消息 -->
+    <sys:String x:Key="Msg.MergingMods">正在合并两个源的模组列表...</sys:String>
+    <sys:String x:Key="Msg.ModsLoaded">已加载 {0} 个模组（合并两个源）</sys:String>
+    <sys:String x:Key="Msg.LoadFailed">加载失败：{0}</sys:String>
+    <sys:String x:Key="Msg.Downloading">正在下载 {0}（{1}）...</sys:String>
+    <sys:String x:Key="Msg.InstallDone">{0} 安装完成！</sys:String>
+    <sys:String x:Key="Msg.InstallSuccess">{0} v{1} 已安装。</sys:String>
+    <sys:String x:Key="Msg.InstallFailed">安装失败</sys:String>
+    <sys:String x:Key="Msg.DownloadFailed">下载失败</sys:String>
+    <sys:String x:Key="Msg.ScanningSteam">正在扫描 Steam 游戏库...</sys:String>
+    <sys:String x:Key="Msg.AutoDetected">自动检测到：{0}</sys:String>
+    <sys:String x:Key="Msg.GameNotFound">未找到游戏，请前往设置页手动选择</sys:String>
+    <sys:String x:Key="Msg.GameNotFoundManual">未找到 TLD 安装目录，请手动选择。</sys:String>
+    <sys:String x:Key="Msg.InitFailed">初始化失败：{0}</sys:String>
+    <sys:String x:Key="Msg.MergingModpacks">正在合并两个源的模组包列表...</sys:String>
+    <sys:String x:Key="Msg.ModpacksLoaded">共 {0} 个模组包（其中 {1} 个双源可用）</sys:String>
+    <sys:String x:Key="Msg.NoDownloadLink">此模组包没有提供下载链接。</sys:String>
+    <sys:String x:Key="Msg.InstallingModpack">正在安装模组包 {0}...</sys:String>
+    <sys:String x:Key="Msg.InstallComplete">安装完成：{0} 成功</sys:String>
+    <sys:String x:Key="Msg.ModpackInstallDone">模组包 {0} 安装完成。\n成功 {1}，共 {2}。</sys:String>
+    <sys:String x:Key="Msg.Importing">正在导入模组包...</sys:String>
+    <sys:String x:Key="Msg.ImportComplete">导入完成：{0} 成功</sys:String>
+    <sys:String x:Key="Msg.ImportDone">成功 {0}，共 {1}。</sys:String>
+    <sys:String x:Key="Msg.ImportFailed">导入失败</sys:String>
+    <sys:String x:Key="Msg.EnterName">请输入模组包名称。</sys:String>
+    <sys:String x:Key="Msg.ExportDone">已保存到：\n{0}</sys:String>
+    <sys:String x:Key="Msg.ExportFailed">导出失败</sys:String>
+    <sys:String x:Key="Msg.Hint">提示</sys:String>
+    <sys:String x:Key="Msg.Success">成功</sys:String>
+    <sys:String x:Key="Msg.Error">错误</sys:String>
+    <sys:String x:Key="Msg.Confirm">确认</sys:String>
+    <sys:String x:Key="Msg.ModsDirNotFound">Mods 目录不存在，请先安装 TLDLoader 或下载一些模组</sys:String>
+    <sys:String x:Key="Msg.ScanningInstalled">正在扫描已安装模组...</sys:String>
+    <sys:String x:Key="Msg.InstalledCount">共 {0} 个已安装 mod</sys:String>
+    <sys:String x:Key="Msg.ScanFailed">扫描失败：{0}</sys:String>
+    <sys:String x:Key="Msg.UninstallConfirm">确定要卸载 mod【{0}】吗？\n将删除 {1} 及同名文件夹。</sys:String>
+    <sys:String x:Key="Msg.Uninstalled">已卸载 {0}</sys:String>
+    <sys:String x:Key="Msg.UninstallFailed">卸载失败</sys:String>
+    <sys:String x:Key="Msg.Reinstalling">正在重装 {0}...</sys:String>
+    <sys:String x:Key="Msg.ReinstallDone">重装完成：{0} v{1}</sys:String>
+    <sys:String x:Key="Msg.ReinstallFailed">重装失败</sys:String>
+    <sys:String x:Key="Msg.SettingsSaved">设置已自动保存</sys:String>
+    <sys:String x:Key="Msg.InfoIncomplete">请填写 mod 名称和作者。</sys:String>
+    <sys:String x:Key="Msg.FileNotFound">请选择要提交的 mod 文件。</sys:String>
+    <sys:String x:Key="Msg.NoSubmitService">请先到「设置」页面填写 FTP 提交服务地址和凭据。</sys:String>
+    <sys:String x:Key="Msg.ConnectingFTP">正在连接 FTP 服务器...</sys:String>
+    <sys:String x:Key="Msg.PreparingFiles">正在准备提交文件...</sys:String>
+    <sys:String x:Key="Msg.Packing">正在打包...</sys:String>
+    <sys:String x:Key="Msg.DownloadingExisting">正在下载现有提交列表...</sys:String>
+    <sys:String x:Key="Msg.Repacking">正在重新打包...</sys:String>
+    <sys:String x:Key="Msg.Uploading">正在上传到 FTP 服务器...</sys:String>
+    <sys:String x:Key="Msg.SubmitDone">提交成功！等待审核。</sys:String>
+    <sys:String x:Key="Msg.SubmitSuccess">感谢你的投稿，我们很快会去看看。\n\n你的 mod 已上传到 FTP 服务器，等待管理员审核。</sys:String>
+    <sys:String x:Key="Msg.SubmitFailed">提交失败</sys:String>
+    <sys:String x:Key="Msg.DetectingLoader">正在检测 TLDLoader 状态...</sys:String>
+    <sys:String x:Key="Msg.NeedPath">请先在设置页面选择 TLD 安装目录</sys:String>
+    <sys:String x:Key="Msg.LoaderInstalled">TLDLoader 已正确安装</sys:String>
+    <sys:String x:Key="Msg.ClickInstall">点击下方按钮安装 TLDLoader</sys:String>
+    <sys:String x:Key="Msg.NeedsUpdate">检测到 TLDLoader.dll 版本不匹配，建议更新</sys:String>
+    <sys:String x:Key="Msg.WillCleanOld">将自动清理旧文件后重新安装</sys:String>
+    <sys:String x:Key="Msg.WillUpgrade">将自动升级到最新版本</sys:String>
+    <sys:String x:Key="Msg.GameUpdated">游戏被 Steam 更新过，需要重新安装 TLDLoader</sys:String>
+    <sys:String x:Key="Msg.DownloadingAll">正在下载全部资源...</sys:String>
+    <sys:String x:Key="Msg.AllResourcesReady">全部 TLDLoader 资源已就绪。</sys:String>
+    <sys:String x:Key="Msg.DownloadFailedShort">下载失败</sys:String>
+    <sys:String x:Key="Msg.DownloadingChinese">正在下载中文模组加载器...</sys:String>
+    <sys:String x:Key="Msg.ChineseLoaderDone">中文 TLDLoader.dll 已下载。下次安装 TLDLoader 时将使用此中文版本。</sys:String>
+    <sys:String x:Key="Msg.DownloadingDeps">正在下载依赖 DLL...</sys:String>
+    <sys:String x:Key="Msg.DepsUpdated">依赖 DLL 已更新。</sys:String>
+    <sys:String x:Key="Msg.DownloadingCore">正在下载核心资源...</sys:String>
+    <sys:String x:Key="Msg.CoreReady">核心资源已就绪。</sys:String>
+    <sys:String x:Key="Msg.NeedConfigPath">请先点击【选择游戏路径】按钮配置 TLD 安装目录。</sys:String>
+    <sys:String x:Key="Msg.GameRunning">请先关闭 The Long Drive，然后再安装/更新 TLDLoader。</sys:String>
+    <sys:String x:Key="Msg.Operating">正在执行操作，请稍候...</sys:String>
+    <sys:String x:Key="Msg.OperationDone">TLDLoader 操作已完成。</sys:String>
+    <sys:String x:Key="Msg.OperationFailed">操作失败</sys:String>
+    <sys:String x:Key="Msg.UninstallConfirmLoader">您确定要从游戏中移除 TLDLoader 吗？所有 mod 将失效。</sys:String>
+    <sys:String x:Key="Msg.GameRunningUninstall">请先关闭 The Long Drive，然后再卸载 TLDLoader。</sys:String>
+    <sys:String x:Key="Msg.Uninstalling">正在卸载...</sys:String>
+    <sys:String x:Key="Msg.UninstalledLoader">TLDLoader 已成功移除。</sys:String>
+    <sys:String x:Key="Msg.UninstallFailedShort">卸载失败</sys:String>
+    <sys:String x:Key="Msg.LaunchFailed">无法启动游戏。Steam 是否已安装？\n\n错误详情：{0}</sys:String>
+    <sys:String x:Key="Msg.DirNotExist">Mods 目录不存在，请先安装 TLDLoader。</sys:String>
+    <sys:String x:Key="Msg.PathInvalid">所选目录中未找到 TheLongDrive.exe，请选择游戏根目录。</sys:String>
+    <sys:String x:Key="Msg.GameNotFoundShort">Steam 库中未找到 The Long Drive，请手动选择游戏目录。</sys:String>
+    <sys:String x:Key="Msg.InstallSuccessShort">安装成功</sys:String>
+    <sys:String x:Key="Msg.OperationSuccess">操作成功</sys:String>
+    <sys:String x:Key="Msg.DownloadComplete">下载完成</sys:String>
+    <sys:String x:Key="Msg.PathNotFound">路径无效</sys:String>
+    <sys:String x:Key="Msg.GameRunningShort">游戏正在运行</sys:String>
+    <sys:String x:Key="Msg.LaunchFailedShort">启动失败</sys:String>
+    <sys:String x:Key="Msg.DirNotExistShort">目录不存在</sys:String>
+    <sys:String x:Key="Msg.NeedConfigPathShort">需要配置路径</sys:String>
+    <sys:String x:Key="Msg.GameNotFoundShortTitle">未找到游戏</sys:String>
+
+    <!-- TldLoader StateText -->
+    <sys:String x:Key="State.NotDetected">未检测</sys:String>
+    <sys:String x:Key="State.NoPath">未配置游戏路径</sys:String>
+    <sys:String x:Key="State.DetectFailed">检测失败：{0}</sys:String>
+    <sys:String x:Key="State.Patched">已安装，运行正常</sys:String>
+    <sys:String x:Key="State.NotPatched">未安装</sys:String>
+    <sys:String x:Key="State.NeedsDllUpdate">已安装但需要更新 TLDLoader.dll</sys:String>
+    <sys:String x:Key="State.OldFilesFound">发现 0.1 版残留文件（需清理后重装）</sys:String>
+    <sys:String x:Key="State.OldPatchFound">发现旧版补丁（需升级）</sys:String>
+    <sys:String x:Key="State.GameUpdated">游戏已更新，补丁失效（需重装）</sys:String>
+    <sys:String x:Key="State.Unknown">未知状态</sys:String>
+    <!-- SourceSelectionDialog -->
+    <sys:String x:Key="SourceDialog.Author">作者: {0}</sys:String>
+    <!-- Category translations -->
+    <sys:String x:Key="Category.Buildings">建筑</sys:String>
+    <sys:String x:Key="Category.Cheats">作弊</sys:String>
+    <sys:String x:Key="Category.Cosmetic">外观</sys:String>
+    <sys:String x:Key="Category.Engines">引擎</sys:String>
+    <sys:String x:Key="Category.GUI">界面</sys:String>
+    <sys:String x:Key="Category.Gameplay">玩法</sys:String>
+    <sys:String x:Key="Category.Graphical">图形</sys:String>
+    <sys:String x:Key="Category.Items">物品</sys:String>
+    <sys:String x:Key="Category.LEGACY">旧版</sys:String>
+    <sys:String x:Key="Category.ModdingLibary">模组库</sys:String>
+    <sys:String x:Key="Category.Mods of Mods">模组的模组</sys:String>
+    <sys:String x:Key="Category.NPC">NPC</sys:String>
+    <sys:String x:Key="Category.Performance">性能</sys:String>
+    <sys:String x:Key="Category.QOL">体验优化</sys:String>
+    <sys:String x:Key="Category.Vehicles">载具</sys:String>
+    <sys:String x:Key="Category.weapons">武器</sys:String>
+    <sys:String x:Key="Category.Local">本地</sys:String>
+    <sys:String x:Key="Category.游戏玩法">游戏玩法</sys:String>
+</ResourceDictionary>

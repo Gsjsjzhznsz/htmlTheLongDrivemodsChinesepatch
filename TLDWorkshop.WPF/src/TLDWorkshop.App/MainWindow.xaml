@@ -1,0 +1,78 @@
+<ui:FluentWindow x:Class="TLDWorkshop.App.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:pages="clr-namespace:TLDWorkshop.App.Views"
+                 xmlns:i18n="clr-namespace:TLDWorkshop.App.MarkupExtensions"
+                 Title="{DynamicResource Home.Title}"
+                 Width="1280"
+                 Height="800"
+                 MinWidth="960"
+                 MinHeight="600"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 WindowCornerPreference="Round">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 自定义标题栏 -->
+        <ui:TitleBar Grid.Row="0" Title="{DynamicResource Home.Title}" />
+
+        <ui:NavigationView Grid.Row="1"
+                           x:Name="RootNavigation"
+                           PaneDisplayMode="Left"
+                           OpenPaneLength="220"
+                           IsPaneOpen="True">
+            <ui:NavigationView.Header>
+                <TextBlock Text="TLD Workshop" FontSize="14" Opacity="0.7" Margin="16,8,0,8" />
+            </ui:NavigationView.Header>
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="{DynamicResource Nav.Home}" TargetPageType="{x:Type pages:HomePage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Home24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="{DynamicResource Nav.TldLoader}" TargetPageType="{x:Type pages:TldLoaderPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Wrench24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="{DynamicResource Nav.Browse}" TargetPageType="{x:Type pages:BrowsePage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Library24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="{DynamicResource Nav.MyMods}" TargetPageType="{x:Type pages:MyModsPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="AppFolder24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="{DynamicResource Nav.Modpack}" TargetPageType="{x:Type pages:ModpackPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Box24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="{DynamicResource Nav.Submit}" TargetPageType="{x:Type pages:SubmitPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Send24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.MenuItems>
+            <ui:NavigationView.FooterMenuItems>
+                <ui:NavigationViewItem Content="{DynamicResource Nav.Settings}" TargetPageType="{x:Type pages:SettingsPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Settings24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.FooterMenuItems>
+
+            <ui:NavigationView.ContentOverlay>
+                <ui:SnackbarPresenter x:Name="SnackbarPresenter" />
+            </ui:NavigationView.ContentOverlay>
+        </ui:NavigationView>
+    </Grid>
+</ui:FluentWindow>
